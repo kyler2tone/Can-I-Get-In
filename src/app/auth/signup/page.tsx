@@ -1,5 +1,4 @@
-import { signupAction } from "@/lib/actions";
-import { AuthForm, AuthLink } from "@/components/auth/auth-form";
+import { SignupForm } from "@/components/auth/signup-form";
 import { PageShell } from "@/components/page-shell";
 
 export const metadata = {
@@ -9,17 +8,7 @@ export const metadata = {
 export default function SignupPage() {
   return (
     <PageShell>
-      <AuthForm
-        title="Create a Contributor account"
-        description="Register with email and password. You will verify your email before contributing."
-        submitLabel="Sign up"
-        action={signupAction}
-        footer={
-          <>
-            Already have an account? <AuthLink href="/auth/login">Log in</AuthLink>.
-          </>
-        }
-      />
+      <SignupForm />
     </PageShell>
   );
 }

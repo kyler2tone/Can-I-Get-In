@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { PhotoUploader } from "@/components/contributions/photo-uploader";
-import { requireUser } from "@/lib/auth";
+import { requireCompletedProfile } from "@/lib/auth";
 import { getPlacePageData, getPlacePhotos } from "@/lib/places";
 
 export const metadata = {
@@ -15,8 +15,8 @@ export default async function PlaceContributePage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const user = await requireUser();
   const { slug } = await params;
+  const { user } = await requireCompletedProfile(`/places/${slug}/contribute`);
   const place = await getPlacePageData(slug);
 
   if (!place) notFound();

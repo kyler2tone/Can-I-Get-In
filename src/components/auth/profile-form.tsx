@@ -8,7 +8,6 @@ const initialState: ActionState = { status: "idle", message: "" };
 
 type Profile = {
   display_name: string | null;
-  username: string | null;
   avatar_url: string | null;
   bio: string | null;
   city: string | null;
@@ -20,27 +19,15 @@ export function ProfileForm({ profile }: { profile: Profile | null }) {
 
   return (
     <form action={action} className="space-y-5 border border-line bg-surface p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          Display name
-          <input
-            className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
-            name="displayName"
-            defaultValue={profile?.display_name ?? ""}
-            required
-          />
-        </label>
-        <label className="block text-sm font-medium">
-          Username
-          <input
-            className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
-            name="username"
-            defaultValue={profile?.username ?? ""}
-            pattern="[a-z0-9_]+"
-            required
-          />
-        </label>
-      </div>
+      <label className="block text-sm font-medium">
+        Display name
+        <input
+          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
+          name="displayName"
+          defaultValue={profile?.display_name ?? ""}
+          required
+        />
+      </label>
       <label className="block text-sm font-medium">
         Avatar URL
         <input

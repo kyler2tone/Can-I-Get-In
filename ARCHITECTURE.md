@@ -20,13 +20,18 @@
 
 ## Supabase Auth
 
-Email/password signup, login, logout, forgot-password, reset-password, email verification, and auth callback routes are implemented. The app uses the Supabase publishable key in browser-safe contexts only. Service role keys are not needed in Phase 1 and must never be exposed with `NEXT_PUBLIC_`.
+Email/password signup, login, logout, forgot-password, reset-password, email verification, magic-link login, Google OAuth entry points, and auth callback routes are implemented. The app uses the Supabase publishable key in browser-safe contexts only. Service role keys must never be exposed with `NEXT_PUBLIC_`.
 
 Profiles are created automatically by the `handle_new_user` trigger after `auth.users` receives a new user.
+
+All confirmation, reset, magic-link, and OAuth redirects use `NEXT_PUBLIC_SITE_URL` through `/auth/callback`. Local development should set `NEXT_PUBLIC_SITE_URL=http://localhost:3000`; production should set `NEXT_PUBLIC_SITE_URL=https://canigetin.app`.
+
+Email, username, and display name are separate. Email is private Supabase Auth identity. Username is the unique public URL handle and is normalized to lowercase. Display name is the editable public friendly name. New users receive a non-email placeholder username and must complete profile onboarding before contributing photos.
 
 ## Database Tables
 
 - `profiles`: Contributor identity and public profile fields.
+- `username_redirects`: records old and new usernames for future public redirect support.
 - `cities`: supported city metadata and mapping status.
 - `places`: public locations displayed on the map.
 - `place_photos`: submitted photo records.
@@ -41,6 +46,7 @@ Profiles are created automatically by the `handle_new_user` trigger after `auth.
 ## RLS Policy Summary
 
 - `profiles`: authenticated users can read and update only their own profile. Public-safe fields are exposed through `public_profiles`. Moderators and admins can manage profiles.
+- Username changes are performed through `complete_profile` and `change_username` RPCs. Ordinary profile updates cannot update username, role, points, or contribution counts.
 - `cities`: anyone can read supported cities.
 - `places`: anyone can read published places. Moderators and admins can manage places.
 - `place_photos`: anyone can read approved photos for published places; uploaders can read their own pending photos; Contributors can create their own pending photo records; moderators can manage photos.
@@ -76,6 +82,16 @@ Contributors can delete or replace their own photo records. Replacement uploads 
 
 Photos are grouped by category on place pages. Pending photos are visible to their uploader immediately; approved photos are visible to public visitors.
 
+The photo contribution route requires a completed profile. Incomplete profiles redirect to `/onboarding/profile` before upload controls are available.
+
+## Privacy And Account Deletion
+
+`/settings/account/export` returns JSON for the authenticated user only. It includes profile information, contribution history, places helped, uploaded photo metadata, reports, verifications, badges, and points where present. It intentionally excludes Supabase Auth internals, secrets, moderation-only fields, other Contributors' private data, and raw image files.
+
+Self-service account deletion is in the Danger Zone on Account Settings. It requires typing `DELETE` and uses a server-only Supabase service-role key through `SUPABASE_SERVICE_ROLE_KEY`. The service key must be configured in Vercel and must never be exposed to the browser.
+
+Deletion removes the Supabase Auth user and public Contributor profile. Community accessibility records and uploaded photo metadata are retained where technically appropriate, with Contributor foreign keys set to `null` by the Sprint 3 migration. Public UI should treat null contributor identities as Former Contributor or Anonymous Contributor.
+
 ## OpenAI Integration
 
 OpenAI vision analysis remains a future feature. The upload pipeline stores stable place, contributor, category, storage path, and moderation metadata so a later server-side analysis job can process uploaded photos without replacing the upload flow. AI-generated observations must include uncertainty and require human Contributor review before publication.
@@ -99,6 +115,8 @@ Use separate anon, contributor, moderator, and admin sessions. Verify:
 - Anonymous users can read published places and active badges only.
 - Contributors can insert only their own pending reports and photo records.
 - Contributors can update, delete, and replace only their own photo records and storage objects.
+- Incomplete profiles cannot submit photos through the app route.
+- Users can export or delete only their own account data.
 - Contributors cannot change another user's content.
 - Contributors cannot publish hidden/admin-controlled content directly.
 - Contributors cannot assign points, badges, moderator role, or admin role.

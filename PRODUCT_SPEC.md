@@ -15,6 +15,7 @@ Know before you go.
 - Static application shell for Rapid City, South Dakota.
 - Mock or seeded place data for map and place profiles.
 - First place-photo contribution workflow.
+- Account identity, onboarding, privacy export, and self-service deletion foundation.
 
 ## Users
 
@@ -41,6 +42,8 @@ Know before you go.
 - `/dashboard`: protected Contributor dashboard.
 - `/contributors/[username]`: public Contributor profile.
 - `/settings/profile`: protected profile editor.
+- `/settings/account`: protected account settings.
+- `/onboarding/profile`: protected required profile-completion flow.
 - `/auth/login`, `/auth/signup`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/callback`: authentication.
 - `/admin`: protected placeholder for moderation tools.
 

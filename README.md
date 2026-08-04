@@ -65,9 +65,10 @@ npm run dev
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 ```
 
-Do not add a Supabase service-role key to any `NEXT_PUBLIC_*` variable.
+`SUPABASE_SERVICE_ROLE_KEY` is server-only and is used for self-service account deletion. Do not add a Supabase service-role key to any `NEXT_PUBLIC_*` variable.
 
 ## Supabase Setup
 
@@ -76,6 +77,8 @@ Apply the project's Supabase migrations to initialize the database schema. Then 
 - Email/password auth is enabled.
 - Site URL is set to `http://localhost:3000` for local development.
 - Redirect URLs include `http://localhost:3000/auth/callback`.
+- Production redirect URLs include `https://canigetin.app/auth/callback`.
+- Google OAuth is enabled only after configuring Google Cloud and the Supabase Google provider.
 - Storage buckets `avatars` and `place-photos` exist with the policies from the migration.
 - RLS is enabled and tested for anon, Contributor, Moderator, and Admin roles.
 
@@ -90,4 +93,4 @@ npm run build
 
 ## Status
 
-Under development. Sprint 2 adds the first real photo upload workflow. Moderation queues, OpenAI vision analysis, and production data collection are future milestones.
+Under development. Sprint 3 adds account identity, onboarding, magic-link and Google sign-in entry points, data export, and account deletion scaffolding. Moderation queues, OpenAI vision analysis, and production data collection are future milestones.

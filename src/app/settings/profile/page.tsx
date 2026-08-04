@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/page-shell";
 import { ProfileForm } from "@/components/auth/profile-form";
+import { ButtonLink } from "@/components/ui/button";
 import { getCurrentProfile, requireUser } from "@/lib/auth";
 
 export const metadata = {
@@ -17,6 +18,11 @@ export default async function ProfileSettingsPage() {
         <p className="mt-2 text-muted">
           Edit the public Contributor profile fields you control.
         </p>
+        <div className="mt-4">
+          <ButtonLink href="/settings/account" variant="secondary">
+            Open account settings
+          </ButtonLink>
+        </div>
         <div className="mt-6">
           <ProfileForm profile={profile} />
         </div>
