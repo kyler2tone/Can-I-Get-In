@@ -15,6 +15,7 @@ Phase 1 establishes the project foundation:
 - Protected Contributor dashboard, profile editor, public Contributor profiles, and future Admin placeholder.
 - Rapid City map shell using MapLibre GL JS and clearly labeled Phase 1 sample places.
 - Versioned Supabase SQL migration for profiles, cities, places, reports, photos, observations, verification, contribution history, badges, moderation flags, RLS, storage buckets, and seed data.
+- First Contributor photo upload workflow for place accessibility photos.
 - Open-source documentation, issue templates, PR template, MIT license, and testing foundation.
 
 AI photo analysis is documented as a future feature and is not implemented in Phase 1.
@@ -89,4 +90,4 @@ npm run build
 
 ## Status
 
-Under development. Phase 1 is a foundation build with mock and seed data. Upload workflows, moderation queues, OpenAI vision analysis, and production data collection are future milestones.
+Under development. Sprint 2 adds the first real photo upload workflow. Moderation queues, OpenAI vision analysis, and production data collection are future milestones.

@@ -14,6 +14,7 @@ Know before you go.
 - Initial database schema, RLS policies, storage setup, and seed data.
 - Static application shell for Rapid City, South Dakota.
 - Mock or seeded place data for map and place profiles.
+- First place-photo contribution workflow.
 
 ## Users
 
@@ -35,6 +36,7 @@ Know before you go.
 - `/`: landing page.
 - `/map`: Rapid City map shell.
 - `/places/[slug]`: place profile shell.
+- `/places/[slug]/contribute`: protected place-photo upload workflow.
 - `/contribute`: contribution guidance.
 - `/dashboard`: protected Contributor dashboard.
 - `/contributors/[username]`: public Contributor profile.

@@ -3,7 +3,11 @@ import { Camera, Flag, RefreshCw } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
-import { formatEntryOutcome, getPlaceBySlug, samplePlaces } from "@/lib/sample-data";
+import { PhotoGallery } from "@/components/places/photo-gallery";
+import { formatEntryOutcome, samplePlaces } from "@/lib/sample-data";
+import { getPlacePageData, getPlacePhotos } from "@/lib/places";
+import { photoCategories } from "@/lib/photo-categories";
+import type { EntryOutcome } from "@/lib/types";
 
 export function generateStaticParams() {
   return samplePlaces.map((place) => ({ slug: place.slug }));
@@ -11,15 +15,18 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const place = getPlaceBySlug(slug);
+  const place = await getPlacePageData(slug);
   return { title: place ? place.name : "Place" };
 }
 
 export default async function PlacePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const place = getPlaceBySlug(slug);
+  const place = await getPlacePageData(slug);
 
   if (!place) notFound();
+
+  const photos = await getPlacePhotos(place.id);
+  const currentEntryStatus = place.currentEntryStatus as EntryOutcome;
 
   return (
     <PageShell>
@@ -32,7 +39,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             <h1 className="mt-2 text-3xl font-semibold">{place.name}</h1>
             <p className="mt-2 text-muted">{place.address}</p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <StatusPill outcome={place.currentEntryStatus} />
+              <StatusPill outcome={currentEntryStatus} />
               <span className="text-sm text-muted">
                 Community confidence: {place.communityConfidence}
               </span>
@@ -42,7 +49,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               <h2 className="text-xl font-semibold">Current summary</h2>
               <p className="mt-3 leading-7 text-muted">{place.currentSummary}</p>
               <p className="mt-3 text-sm text-muted">
-                Entry outcome shown as: {formatEntryOutcome(place.currentEntryStatus)}.
+                Entry outcome shown as: {formatEntryOutcome(currentEntryStatus)}.
               </p>
             </section>
             <section className="mt-5 border border-line bg-surface p-5">
@@ -59,16 +66,17 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
                 ))}
               </div>
             </section>
+            <PhotoGallery photos={photos} />
           </article>
           <aside className="space-y-5">
             <div className="border border-line bg-surface p-5">
               <h2 className="text-lg font-semibold">Photo categories</h2>
               <ul className="mt-3 space-y-2 text-sm text-muted">
-                {place.photoCategories.map((category) => (
-                  <li key={category}>{category.replaceAll("_", " ")}</li>
+                {photoCategories.map((category) => (
+                  <li key={category.value}>{category.label}</li>
                 ))}
               </ul>
-              <ButtonLink className="mt-5 w-full" href="/contribute">
+              <ButtonLink className="mt-5 w-full" href={`/places/${slug}/contribute`}>
                 <Camera size={18} aria-hidden="true" />
                 Help improve this place
               </ButtonLink>

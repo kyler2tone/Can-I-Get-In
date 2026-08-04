@@ -13,6 +13,7 @@
 
 - `src/app`: routes and route handlers.
 - `src/components`: reusable UI, auth forms, map components, and shell layout.
+- `src/components/contributions`: Contributor upload workflow components.
 - `src/lib`: Supabase clients, auth helpers, server actions, validation, sample data, and shared types.
 - `supabase/migrations`: versioned SQL migrations.
 - `tests`: Vitest tests.
@@ -56,7 +57,7 @@ Profiles are created automatically by the `handle_new_user` trigger after `auth.
 Buckets:
 
 - `avatars`: public-read, authenticated write to `{user_id}/{filename}`, max 2 MB, JPEG/PNG/WebP.
-- `place-photos`: private, authenticated upload to `{place_id}/{user_id}/{filename}`, max 10 MB, JPEG/PNG/WebP.
+- `place-photos`: private, authenticated upload to `{place_id}/{user_id}/{filename}`, max 15 MB, JPEG/PNG/WebP.
 
 The app stores predictable full paths in database records:
 
@@ -65,9 +66,19 @@ The app stores predictable full paths in database records:
 
 Place photos should be shown publicly only after moderation approval, normally through signed URLs or a server-mediated public surface.
 
+## Contributor Photo Workflow
+
+Logged-in Contributors can open a place page and use "Help improve this place" to upload one or more accessibility photos. The browser workflow supports mobile camera capture, mobile gallery selection, desktop file picker, and desktop drag and drop.
+
+The client validates image type, compresses large images with canvas before upload, enforces a 15 MB post-compression maximum, uploads to Supabase Storage with an XMLHttpRequest progress indicator, then writes the existing `place_photos` record through RLS. Uploaded photos are associated with place, contributor, category, moderation status, and upload timestamp.
+
+Contributors can delete or replace their own photo records. Replacement uploads a new storage object, updates the existing `place_photos` row, and removes the old object. Contributors cannot modify another Contributor's uploads under the Sprint 2 RLS policies.
+
+Photos are grouped by category on place pages. Pending photos are visible to their uploader immediately; approved photos are visible to public visitors.
+
 ## OpenAI Integration
 
-OpenAI vision analysis is a future Phase 2 feature. AI-generated observations must include uncertainty and require human Contributor review before publication.
+OpenAI vision analysis remains a future feature. The upload pipeline stores stable place, contributor, category, storage path, and moderation metadata so a later server-side analysis job can process uploaded photos without replacing the upload flow. AI-generated observations must include uncertainty and require human Contributor review before publication.
 
 ## Authentication And Authorization Test Plan
 
@@ -87,6 +98,7 @@ Use separate anon, contributor, moderator, and admin sessions. Verify:
 
 - Anonymous users can read published places and active badges only.
 - Contributors can insert only their own pending reports and photo records.
+- Contributors can update, delete, and replace only their own photo records and storage objects.
 - Contributors cannot change another user's content.
 - Contributors cannot publish hidden/admin-controlled content directly.
 - Contributors cannot assign points, badges, moderator role, or admin role.
