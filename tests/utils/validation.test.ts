@@ -10,6 +10,7 @@ describe("username validation", () => {
   it("accepts and normalizes safe usernames", () => {
     expect(usernameSchema.safeParse("rapidcity_2026").success).toBe(true);
     expect(usernameSchema.parse("Rapid-City")).toBe("rapid-city");
+    expect(usernameSchema.parse(" Rapid City ")).toBe("rapid-city");
   });
 
   it("rejects short, unsafe, and reserved usernames", () => {

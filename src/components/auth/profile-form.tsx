@@ -2,11 +2,13 @@
 
 import { useActionState } from "react";
 import { updateProfileAction, type ActionState } from "@/lib/actions";
+import { AvatarUploader } from "@/components/auth/avatar-uploader";
 import { Button } from "@/components/ui/button";
 
 const initialState: ActionState = { status: "idle", message: "" };
 
 type Profile = {
+  id: string;
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
@@ -19,6 +21,13 @@ export function ProfileForm({ profile }: { profile: Profile | null }) {
 
   return (
     <form action={action} className="space-y-5 border border-line bg-surface p-5">
+      {profile?.id ? (
+        <AvatarUploader
+          displayName={profile.display_name}
+          initialAvatarUrl={profile.avatar_url}
+          userId={profile.id}
+        />
+      ) : null}
       <label className="block text-sm font-medium">
         Display name
         <input
@@ -26,15 +35,6 @@ export function ProfileForm({ profile }: { profile: Profile | null }) {
           name="displayName"
           defaultValue={profile?.display_name ?? ""}
           required
-        />
-      </label>
-      <label className="block text-sm font-medium">
-        Avatar URL
-        <input
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
-          name="avatarUrl"
-          defaultValue={profile?.avatar_url ?? ""}
-          type="url"
         />
       </label>
       <label className="block text-sm font-medium">

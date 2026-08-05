@@ -113,12 +113,6 @@ export async function resetPasswordAction(
   return { status: "success", message: "Your password has been updated." };
 }
 
-export async function logoutAction() {
-  const supabase = await getSupabaseServerClient();
-  await supabase.auth.signOut();
-  redirect("/");
-}
-
 export async function updateProfileAction(
   _: ActionState,
   formData: FormData,
@@ -275,7 +269,7 @@ export async function deleteAccountAction(
 
   const admin = getSupabaseAdminClient();
 
-  await admin
+  const { error: profileError } = await admin
     .from("profiles")
     .update({
       display_name: "Former Contributor",
@@ -288,6 +282,10 @@ export async function deleteAccountAction(
       deleted_at: new Date().toISOString(),
     })
     .eq("id", user.id);
+
+  if (profileError) {
+    return { status: "error", message: profileError.message || defaultError };
+  }
 
   const { error } = await admin.auth.admin.deleteUser(user.id, true);
 

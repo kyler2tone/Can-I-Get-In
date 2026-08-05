@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/lib/auth";
+import { formatContributorExportText, type ContributorExportPayload } from "@/lib/data-export";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const user = await requireUser();
   const supabase = await getSupabaseServerClient();
+  const format = new URL(request.url).searchParams.get("format");
 
   const [
     profile,
@@ -65,7 +67,7 @@ export async function GET() {
         .in("id", placeIds)
     : { data: [] };
 
-  const payload = {
+  const payload: ContributorExportPayload = {
     exportedAt: new Date().toISOString(),
     account: {
       id: user.id,
@@ -86,6 +88,15 @@ export async function GET() {
       "raw uploaded image files",
     ],
   };
+
+  if (format === "txt") {
+    return new NextResponse(formatContributorExportText(payload), {
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "content-disposition": 'attachment; filename="can-i-get-in-data-export.txt"',
+      },
+    });
+  }
 
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {

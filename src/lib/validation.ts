@@ -30,7 +30,7 @@ export const reservedUsernames = new Set([
 ]);
 
 export function normalizeUsername(value: string) {
-  return value.trim().toLowerCase();
+  return value.trim().toLowerCase().replace(/\s+/g, "-");
 }
 
 export const usernameSchema = z.preprocess(
@@ -41,7 +41,7 @@ export const usernameSchema = z.preprocess(
     .max(32, "Username must be 32 characters or fewer.")
     .regex(
       /^[a-z0-9_-]+$/,
-      "Use lowercase letters, numbers, underscores, and hyphens only.",
+      "Username must contain only lowercase letters, numbers, hyphens, and underscores.",
     )
     .refine((value: string) => !reservedUsernames.has(value), {
       message: "That username is reserved. Choose another one.",
@@ -56,7 +56,7 @@ export const displayNameSchema = z
 
 export const profileSchema = z.object({
   displayName: displayNameSchema,
-  avatarUrl: z.string().trim().url("Enter a valid avatar URL.").or(z.literal("")),
+  avatarUrl: z.string().trim().url("Upload an avatar or leave it blank.").or(z.literal("")),
   bio: z.string().trim().max(280, "Bio must be 280 characters or fewer."),
   city: z.string().trim().max(80),
   state: z.string().trim().max(40),

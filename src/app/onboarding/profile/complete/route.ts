@@ -9,10 +9,22 @@ function safeNext(value: FormDataEntryValue | null) {
     : "/dashboard";
 }
 
-function redirectWithError(request: NextRequest, message: string, next: string) {
+function friendlyProfileError(message: string) {
+  if (message === "That username is not available.") return "Username already taken.";
+  return message;
+}
+
+function redirectWithError(
+  request: NextRequest,
+  message: string,
+  next: string,
+  values: { displayName?: string; username?: string } = {},
+) {
   const url = new URL("/onboarding/profile", request.url);
-  url.searchParams.set("error", message);
+  url.searchParams.set("error", friendlyProfileError(message));
   url.searchParams.set("next", next);
+  if (values.displayName) url.searchParams.set("displayName", values.displayName);
+  if (values.username) url.searchParams.set("username", values.username);
   return NextResponse.redirect(url);
 }
 
@@ -30,13 +42,19 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const next = safeNext(formData.get("next"));
+  const displayName = formData.get("displayName");
+  const username = formData.get("username");
+  const values = {
+    displayName: typeof displayName === "string" ? displayName : "",
+    username: typeof username === "string" ? username : "",
+  };
   const parsed = completeProfileSchema.safeParse({
-    displayName: formData.get("displayName"),
-    username: formData.get("username"),
+    displayName: values.displayName,
+    username: values.username,
   });
 
   if (!parsed.success) {
-    return redirectWithError(request, parsed.error.issues[0].message, next);
+    return redirectWithError(request, parsed.error.issues[0].message, next, values);
   }
 
   const { error } = await supabase.rpc("complete_profile", {
@@ -45,7 +63,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return redirectWithError(request, error.message, next);
+    return redirectWithError(request, error.message, next, values);
   }
 
   revalidatePath("/dashboard");

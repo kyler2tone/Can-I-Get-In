@@ -5,10 +5,12 @@ export function ProfileCompletionForm({
   next,
   displayName,
   error,
+  username,
 }: {
   next: string;
   displayName: string;
   error?: string;
+  username?: string;
 }) {
   return (
     <form
@@ -26,7 +28,7 @@ export function ProfileCompletionForm({
           required
         />
       </label>
-      <UsernameField />
+      <UsernameField defaultValue={username ?? ""} />
       {error ? (
         <p className="rounded-md bg-rose-100 px-3 py-2 text-sm text-rose-950" role="alert">
           {error}

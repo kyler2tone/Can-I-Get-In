@@ -34,6 +34,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     available: Boolean(data),
     normalized: username.data,
-    message: data ? "Username is available." : "That username is not available.",
+    message: data ? "Username is available." : "Username already taken.",
   });
 }

@@ -44,22 +44,6 @@ function redirectWithScheduledCookies(
   return response;
 }
 
-function logCallbackDiagnostic({
-  exchangeSucceeded,
-  scheduledCookies,
-  redirectDestination,
-}: {
-  exchangeSucceeded: boolean;
-  scheduledCookies: ScheduledCookie[];
-  redirectDestination: string;
-}) {
-  console.info("[auth-callback]", {
-    exchangeSucceeded,
-    scheduledSetCookieNames: scheduledCookies.map((cookie) => cookie.name),
-    redirectDestination,
-  });
-}
-
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -69,11 +53,6 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     const destination = getCallbackErrorDestination("No sign-in code was provided.");
-    logCallbackDiagnostic({
-      exchangeSucceeded: false,
-      scheduledCookies,
-      redirectDestination: destination,
-    });
     return redirectWithScheduledCookies(destination, scheduledCookies);
   }
 
@@ -82,11 +61,6 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     const destination = getCallbackErrorDestination();
-    logCallbackDiagnostic({
-      exchangeSucceeded: false,
-      scheduledCookies,
-      redirectDestination: destination,
-    });
     return redirectWithScheduledCookies(destination, scheduledCookies);
   }
 
@@ -102,10 +76,5 @@ export async function GET(request: NextRequest) {
     : { data: null };
 
   const destination = getPostAuthDestination({ profile, requestedNext: next, authType });
-  logCallbackDiagnostic({
-    exchangeSucceeded: true,
-    scheduledCookies,
-    redirectDestination: destination,
-  });
   return redirectWithScheduledCookies(destination, scheduledCookies);
 }

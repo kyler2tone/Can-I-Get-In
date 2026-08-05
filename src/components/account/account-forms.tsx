@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import {
   changeEmailAction,
   deleteAccountAction,
   resetPasswordAction,
   type ActionState,
 } from "@/lib/actions";
+import { canStartAccountDeletion } from "@/lib/account-deletion";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { PasswordField } from "@/components/auth/password-field";
 
@@ -52,9 +53,26 @@ export function PasswordUpdateForm() {
 
 export function DeleteAccountForm() {
   const [state, action, pending] = useActionState(deleteAccountAction, initialState);
+  const submittedRef = useRef(false);
 
   return (
-    <form action={action} className="space-y-4 border border-rose-200 bg-rose-50 p-4">
+    <form
+      action={async (formData) => {
+        if (!canStartAccountDeletion({ pending, submitted: submittedRef.current })) return;
+        submittedRef.current = true;
+        try {
+          await action(formData);
+        } finally {
+          submittedRef.current = false;
+        }
+      }}
+      className="space-y-4 border border-rose-200 bg-rose-50 p-4"
+      onSubmit={(event) => {
+        if (!window.confirm("Delete your Can I Get In? account? This cannot be undone.")) {
+          event.preventDefault();
+        }
+      }}
+    >
       <p className="text-sm leading-6 text-rose-950">
         Deleting your account removes your login, public profile, display name, username,
         avatar, and bio. Community accessibility records and uploaded photo metadata are
@@ -77,7 +95,14 @@ export function DeleteAccountForm() {
 }
 
 export function ExportDataButton() {
-  return <ButtonLink href="/settings/account/export">Download My Data</ButtonLink>;
+  return (
+    <div className="flex flex-wrap gap-2">
+      <ButtonLink href="/settings/account/export">Download JSON</ButtonLink>
+      <ButtonLink href="/settings/account/export?format=txt" variant="secondary">
+        Download TXT
+      </ButtonLink>
+    </div>
+  );
 }
 
 function Message({ state }: { state: ActionState }) {

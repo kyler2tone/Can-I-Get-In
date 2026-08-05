@@ -9,11 +9,11 @@ export const metadata = {
 export default async function ProfileOnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ displayName?: string; error?: string; next?: string; username?: string }>;
 }) {
   const user = await requireUser();
   const profile = await getCurrentProfile();
-  const { error, next } = await searchParams;
+  const { displayName, error, next, username } = await searchParams;
 
   return (
     <PageShell>
@@ -28,9 +28,10 @@ export default async function ProfileOnboardingPage({
         </p>
         <div className="mt-6">
           <ProfileCompletionForm
-            displayName={profile?.display_name ?? ""}
+            displayName={displayName ?? profile?.display_name ?? ""}
             error={error}
             next={next && next.startsWith("/") ? next : "/dashboard"}
+            username={username}
           />
         </div>
       </section>

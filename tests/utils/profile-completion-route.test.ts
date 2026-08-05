@@ -120,6 +120,8 @@ describe("profile completion route", () => {
     );
 
     expect(response.headers.get("location")).toContain("/onboarding/profile?error=");
+    expect(response.headers.get("location")).toContain("displayName=Rapid+Helper");
+    expect(response.headers.get("location")).toContain("username=admin");
     expect(rpc).not.toHaveBeenCalled();
     expect(signOut).not.toHaveBeenCalled();
   });
@@ -139,7 +141,9 @@ describe("profile completion route", () => {
       ) as never,
     );
 
-    expect(response.headers.get("location")).toContain("/onboarding/profile?error=");
+    expect(response.headers.get("location")).toContain("error=Username+already+taken.");
+    expect(response.headers.get("location")).toContain("displayName=Rapid+Helper");
+    expect(response.headers.get("location")).toContain("username=rapid-helper");
     expect(signOut).not.toHaveBeenCalled();
   });
 });
