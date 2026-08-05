@@ -1,8 +1,6 @@
 import { DoorOpen, LogOut, MapPinned, UserRound } from "lucide-react";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
-import { logoutAction } from "@/lib/actions";
-import { Button } from "@/components/ui/button";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
@@ -31,12 +29,14 @@ export async function SiteHeader() {
               >
                 Dashboard
               </Link>
-              <form action={logoutAction}>
-                <Button variant="ghost" title="Log out">
-                  <LogOut size={16} aria-hidden="true" />
-                  <span className="hidden sm:inline">Log out</span>
-                </Button>
-              </form>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-4 py-2 text-sm font-semibold text-brand-strong transition hover:bg-white/60"
+                href="/auth/logout"
+                title="Log out"
+              >
+                <LogOut size={16} aria-hidden="true" />
+                <span className="hidden sm:inline">Log out</span>
+              </Link>
             </>
           ) : (
             <>

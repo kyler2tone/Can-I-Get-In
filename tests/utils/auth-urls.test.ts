@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getAuthCallbackUrl, getSiteUrl, normalizeCallbackNext } from "@/lib/auth-urls";
+import {
+  getAuthCallbackUrl,
+  getAuthExchangeCallbackUrl,
+  getSiteUrl,
+  normalizeCallbackNext,
+} from "@/lib/auth-urls";
 
 describe("auth URL helpers", () => {
   afterEach(() => {
@@ -10,6 +15,7 @@ describe("auth URL helpers", () => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://canigetin.app/");
 
     expect(getSiteUrl()).toBe("https://canigetin.app");
+    expect(getAuthExchangeCallbackUrl()).toBe("https://canigetin.app/auth/callback");
     expect(getAuthCallbackUrl("/onboarding/profile")).toBe(
       "https://canigetin.app/auth/callback?next=%2Fonboarding%2Fprofile",
     );

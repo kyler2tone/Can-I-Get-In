@@ -14,7 +14,7 @@ import {
 import { requireUser } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
-import { getAuthCallbackUrl } from "@/lib/auth-urls";
+import { getAuthExchangeCallbackUrl } from "@/lib/auth-urls";
 
 export type ActionState = {
   status: "idle" | "success" | "error";
@@ -59,7 +59,7 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: getAuthCallbackUrl("/onboarding/profile"),
+      emailRedirectTo: getAuthExchangeCallbackUrl(),
     },
   });
 
@@ -83,7 +83,7 @@ export async function forgotPasswordAction(
 
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
-    redirectTo: getAuthCallbackUrl("/auth/reset-password"),
+    redirectTo: getAuthExchangeCallbackUrl(),
   });
 
   if (error) {
@@ -234,7 +234,7 @@ export async function changeEmailAction(
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.updateUser(
     { email: email.data },
-    { emailRedirectTo: getAuthCallbackUrl("/settings/account") },
+    { emailRedirectTo: getAuthExchangeCallbackUrl() },
   );
 
   if (error) {
@@ -261,7 +261,7 @@ export async function sendMagicLinkAction(
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
     options: {
-      emailRedirectTo: getAuthCallbackUrl("/dashboard"),
+      emailRedirectTo: getAuthExchangeCallbackUrl(),
       shouldCreateUser: false,
     },
   });
@@ -281,7 +281,7 @@ export async function signInWithGoogleAction() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: getAuthCallbackUrl("/onboarding/profile"),
+      redirectTo: getAuthExchangeCallbackUrl(),
     },
   });
 

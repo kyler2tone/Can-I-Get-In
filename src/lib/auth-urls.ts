@@ -15,6 +15,10 @@ export function getAuthCallbackUrl(next = "/dashboard") {
   return `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 }
 
+export function getAuthExchangeCallbackUrl() {
+  return `${getSiteUrl()}/auth/callback`;
+}
+
 export function normalizeCallbackNext(next: string | null) {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
     return "/dashboard";
