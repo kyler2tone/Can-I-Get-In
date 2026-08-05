@@ -13,9 +13,14 @@ export const metadata = {
   title: "Account Settings",
 };
 
-export default async function AccountSettingsPage() {
+export default async function AccountSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deleteError?: string }>;
+}) {
   const user = await requireUser();
   const profile = await getCurrentProfile();
+  const { deleteError } = await searchParams;
 
   return (
     <PageShell>
@@ -50,8 +55,8 @@ export default async function AccountSettingsPage() {
         <section className="border border-line bg-surface p-5">
           <h2 className="text-xl font-semibold">Connected Sign-In Methods</h2>
           <p className="mt-3 text-sm text-muted">
-            Email/password, magic links, and Google sign-in are supported when enabled in
-            Supabase. Provider connection details are managed by Supabase Auth.
+            Manage the ways you sign in to your account. You can use Google and any other
+            available sign-in methods connected to your account.
           </p>
         </section>
         <section className="border border-line bg-surface p-5">
@@ -67,7 +72,7 @@ export default async function AccountSettingsPage() {
         <section className="border border-rose-200 bg-white p-5">
           <h2 className="text-xl font-semibold text-rose-950">Danger Zone</h2>
           <div className="mt-4">
-            <DeleteAccountForm />
+            <DeleteAccountForm error={deleteError} />
           </div>
         </section>
       </section>

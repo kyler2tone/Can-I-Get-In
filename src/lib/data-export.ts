@@ -53,19 +53,7 @@ export function formatContributorExportText(payload: ContributorExportPayload) {
     `Verifications: ${payload.verifications.length}`,
     `Badges: ${payload.badges.length}`,
     "",
-    "Included Sections:",
-    "- Profile",
-    "- Uploaded photo metadata",
-    "- Contribution history",
-    "- Places helped",
-    "- Reports and verifications",
-    "- Badges",
-    "",
-    "Excluded:",
-    ...payload.excluded.map((item) => `- ${item}`),
-    "",
   ];
 
   return lines.join("\n");
 }
-

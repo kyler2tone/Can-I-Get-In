@@ -32,7 +32,8 @@ describe("contributor TXT export", () => {
     expect(text).toContain("Username: rapid-helper");
     expect(text).toContain("Email: person@example.com");
     expect(text).toContain("Photos contributed: 2");
-    expect(text).toContain("- raw uploaded image files");
+    expect(text).not.toContain("Included Sections:");
+    expect(text).not.toContain("Excluded:");
+    expect(text.trim().endsWith("Badges: 0")).toBe(true);
   });
 });
-

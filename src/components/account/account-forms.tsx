@@ -3,12 +3,10 @@
 import { useActionState, useRef } from "react";
 import {
   changeEmailAction,
-  deleteAccountAction,
   resetPasswordAction,
   type ActionState,
 } from "@/lib/actions";
-import { canStartAccountDeletion } from "@/lib/account-deletion";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { PasswordField } from "@/components/auth/password-field";
 
 const initialState: ActionState = { status: "idle", message: "" };
@@ -51,25 +49,30 @@ export function PasswordUpdateForm() {
   );
 }
 
-export function DeleteAccountForm() {
-  const [state, action, pending] = useActionState(deleteAccountAction, initialState);
+export function DeleteAccountForm({ error }: { error?: string }) {
   const submittedRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
     <form
-      action={async (formData) => {
-        if (!canStartAccountDeletion({ pending, submitted: submittedRef.current })) return;
-        submittedRef.current = true;
-        try {
-          await action(formData);
-        } finally {
-          submittedRef.current = false;
-        }
-      }}
+      action="/settings/account/delete"
       className="space-y-4 border border-rose-200 bg-rose-50 p-4"
+      method="post"
       onSubmit={(event) => {
+        if (submittedRef.current) {
+          event.preventDefault();
+          return;
+        }
+
         if (!window.confirm("Delete your Can I Get In? account? This cannot be undone.")) {
           event.preventDefault();
+          return;
+        }
+
+        submittedRef.current = true;
+        if (buttonRef.current) {
+          buttonRef.current.disabled = true;
+          buttonRef.current.textContent = "Deleting...";
         }
       }}
     >
@@ -86,21 +89,34 @@ export function DeleteAccountForm() {
           required
         />
       </label>
-      <Message state={state} />
-      <Button disabled={pending} variant="secondary">
-        {pending ? "Deleting..." : "Delete my account"}
+      {error ? (
+        <p className="rounded-md bg-rose-100 px-3 py-2 text-sm text-rose-950" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <Button ref={buttonRef} variant="secondary">
+        Delete my account
       </Button>
     </form>
   );
 }
 
 export function ExportDataButton() {
+  const className =
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-semibold transition";
+
   return (
     <div className="flex flex-wrap gap-2">
-      <ButtonLink href="/settings/account/export">Download JSON</ButtonLink>
-      <ButtonLink href="/settings/account/export?format=txt" variant="secondary">
+      <a className={`${className} border-brand bg-brand text-white hover:bg-brand-strong`} download href="/settings/account/export">
+        Download JSON
+      </a>
+      <a
+        className={`${className} border-line bg-surface text-foreground hover:border-brand hover:text-brand-strong`}
+        download
+        href="/settings/account/export?format=txt"
+      >
         Download TXT
-      </ButtonLink>
+      </a>
     </div>
   );
 }

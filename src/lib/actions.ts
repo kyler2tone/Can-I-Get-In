@@ -12,7 +12,6 @@ import {
 } from "@/lib/validation";
 import { requireUser } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { getAuthExchangeCallbackUrl } from "@/lib/auth-urls";
 
 export type ActionState = {
@@ -254,46 +253,4 @@ export async function signInWithGoogleAction() {
   }
 
   redirect(data.url);
-}
-
-export async function deleteAccountAction(
-  _: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user = await requireUser();
-  const confirmation = parseFormString(formData, "confirmation");
-
-  if (confirmation !== "DELETE") {
-    return { status: "error", message: "Type DELETE to confirm account deletion." };
-  }
-
-  const admin = getSupabaseAdminClient();
-
-  const { error: profileError } = await admin
-    .from("profiles")
-    .update({
-      display_name: "Former Contributor",
-      username: `deleted-${user.id.slice(0, 8)}`,
-      avatar_url: null,
-      bio: null,
-      city: null,
-      state: null,
-      profile_completed: false,
-      deleted_at: new Date().toISOString(),
-    })
-    .eq("id", user.id);
-
-  if (profileError) {
-    return { status: "error", message: profileError.message || defaultError };
-  }
-
-  const { error } = await admin.auth.admin.deleteUser(user.id, true);
-
-  if (error) {
-    return { status: "error", message: error.message };
-  }
-
-  const supabase = await getSupabaseServerClient();
-  await supabase.auth.signOut();
-  redirect("/?message=Your account has been deleted.");
 }

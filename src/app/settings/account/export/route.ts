@@ -81,10 +81,10 @@ export async function GET(request: NextRequest) {
     contributions: contributions.data ?? [],
     badges: badges.data ?? [],
     excluded: [
-      "Supabase Auth internals",
-      "service-role credentials",
-      "moderation-only fields",
-      "private data belonging to other Contributors",
+      "private sign-in system records",
+      "private security credentials",
+      "private review fields",
+      "private data belonging to other contributors",
       "raw uploaded image files",
     ],
   };

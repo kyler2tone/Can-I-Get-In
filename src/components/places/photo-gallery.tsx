@@ -35,7 +35,7 @@ export function PhotoGallery({ photos }: { photos: PlacePhoto[] }) {
                       </div>
                     )}
                     <figcaption className="flex items-center justify-between gap-3 px-3 py-2 text-xs text-muted">
-                      <span>{photo.moderation_status}</span>
+                      <span>Community photo</span>
                       <span>{photo.created_at.slice(0, 10)}</span>
                     </figcaption>
                   </figure>
