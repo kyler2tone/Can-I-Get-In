@@ -16,15 +16,49 @@ function redirectWithError(request: NextRequest, message: string, next: string) 
   return NextResponse.redirect(url);
 }
 
+function getDiagnosticCookieNames(request: NextRequest) {
+  return (request.headers.get("cookie") ?? "")
+    .split(";")
+    .map((cookie) => cookie.trim().split("=")[0])
+    .filter((name) => name.startsWith("sb-"));
+}
+
+function logProfileCompletionDiagnostic(
+  event: string,
+  request: NextRequest,
+  details: Record<string, unknown> = {},
+) {
+  console.info("[profile-completion]", {
+    event,
+    requestHost: request.headers.get("host"),
+    hasCookieHeader: Boolean(request.headers.get("cookie")),
+    supabaseCookieNames: getDiagnosticCookieNames(request),
+    ...details,
+  });
+}
+
 export async function POST(request: NextRequest) {
+  logProfileCompletionDiagnostic("request_received", request);
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { user },
+    error: getUserError,
   } = await supabase.auth.getUser();
+
+  logProfileCompletionDiagnostic("auth_get_user_result", request, {
+    authReturnedUser: Boolean(user),
+    authGetUserErrorMessage: getUserError?.message ?? null,
+    authGetUserErrorCode: getUserError?.code ?? null,
+  });
 
   if (!user) {
     const url = new URL("/auth/login", request.url);
     url.searchParams.set("message", "Please sign in to continue.");
+    logProfileCompletionDiagnostic("redirecting", request, {
+      completeProfileReached: false,
+      finalRedirectDestination: url.pathname,
+    });
     return NextResponse.redirect(url);
   }
 
@@ -36,8 +70,16 @@ export async function POST(request: NextRequest) {
   });
 
   if (!parsed.success) {
+    logProfileCompletionDiagnostic("redirecting", request, {
+      completeProfileReached: false,
+      finalRedirectDestination: "/onboarding/profile",
+    });
     return redirectWithError(request, parsed.error.issues[0].message, next);
   }
+
+  logProfileCompletionDiagnostic("complete_profile_reached", request, {
+    completeProfileReached: true,
+  });
 
   const { error } = await supabase.rpc("complete_profile", {
     candidate_username: parsed.data.username,
@@ -45,10 +87,18 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
+    logProfileCompletionDiagnostic("redirecting", request, {
+      completeProfileReached: true,
+      finalRedirectDestination: "/onboarding/profile",
+    });
     return redirectWithError(request, error.message, next);
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/settings/account");
+  logProfileCompletionDiagnostic("redirecting", request, {
+    completeProfileReached: true,
+    finalRedirectDestination: next,
+  });
   return NextResponse.redirect(new URL(next, request.url));
 }
