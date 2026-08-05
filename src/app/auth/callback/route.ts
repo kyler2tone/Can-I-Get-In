@@ -1,23 +1,93 @@
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSupabaseServerClient } from "@/lib/supabase";
 import { getSiteUrl, normalizeCallbackNext } from "@/lib/auth-urls";
 import { getCallbackErrorDestination, getPostAuthDestination } from "@/lib/auth-callback";
+
+type ScheduledCookie = {
+  name: string;
+  value: string;
+  options: CookieOptions;
+};
+
+function createCallbackSupabaseClient(request: NextRequest, scheduledCookies: ScheduledCookie[]) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach((cookie) => scheduledCookies.push(cookie));
+        },
+      },
+    },
+  );
+}
+
+function redirectWithScheduledCookies(
+  destination: string,
+  scheduledCookies: ScheduledCookie[],
+) {
+  const response = NextResponse.redirect(new URL(destination, getSiteUrl()));
+
+  scheduledCookies.forEach(({ name, value, options }) => {
+    const safeOptions = { ...options };
+    delete safeOptions.domain;
+    response.cookies.set(name, value, {
+      ...safeOptions,
+      path: safeOptions.path ?? "/",
+    });
+  });
+
+  return response;
+}
+
+function logCallbackDiagnostic({
+  exchangeSucceeded,
+  scheduledCookies,
+  redirectDestination,
+}: {
+  exchangeSucceeded: boolean;
+  scheduledCookies: ScheduledCookie[];
+  redirectDestination: string;
+}) {
+  console.info("[auth-callback]", {
+    exchangeSucceeded,
+    scheduledSetCookieNames: scheduledCookies.map((cookie) => cookie.name),
+    redirectDestination,
+  });
+}
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = normalizeCallbackNext(requestUrl.searchParams.get("next"));
   const authType = requestUrl.searchParams.get("type");
+  const scheduledCookies: ScheduledCookie[] = [];
 
   if (!code) {
-    return NextResponse.redirect(new URL(getCallbackErrorDestination("No sign-in code was provided."), getSiteUrl()));
+    const destination = getCallbackErrorDestination("No sign-in code was provided.");
+    logCallbackDiagnostic({
+      exchangeSucceeded: false,
+      scheduledCookies,
+      redirectDestination: destination,
+    });
+    return redirectWithScheduledCookies(destination, scheduledCookies);
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = createCallbackSupabaseClient(request, scheduledCookies);
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    return NextResponse.redirect(new URL(getCallbackErrorDestination(), getSiteUrl()));
+    const destination = getCallbackErrorDestination();
+    logCallbackDiagnostic({
+      exchangeSucceeded: false,
+      scheduledCookies,
+      redirectDestination: destination,
+    });
+    return redirectWithScheduledCookies(destination, scheduledCookies);
   }
 
   const {
@@ -31,7 +101,11 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
     : { data: null };
 
-  return NextResponse.redirect(
-    new URL(getPostAuthDestination({ profile, requestedNext: next, authType }), getSiteUrl()),
-  );
+  const destination = getPostAuthDestination({ profile, requestedNext: next, authType });
+  logCallbackDiagnostic({
+    exchangeSucceeded: true,
+    scheduledCookies,
+    redirectDestination: destination,
+  });
+  return redirectWithScheduledCookies(destination, scheduledCookies);
 }

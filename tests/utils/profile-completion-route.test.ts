@@ -18,11 +18,12 @@ vi.mock("@/lib/supabase", () => ({
   })),
 }));
 
-function completionRequest(body: URLSearchParams) {
+function completionRequest(body: URLSearchParams, cookieHeader?: string) {
   return new Request("https://canigetin.app/onboarding/profile/complete", {
     method: "POST",
     headers: {
       "content-type": "application/x-www-form-urlencoded",
+      ...(cookieHeader ? { cookie: cookieHeader } : {}),
     },
     body,
   });
@@ -76,6 +77,30 @@ describe("profile completion route", () => {
       candidate_username: "rapid-helper",
     });
     expect(signOut).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("https://canigetin.app/dashboard");
+  });
+
+  it("authenticates a subsequent onboarding POST when callback cookies are present", async () => {
+    getUser.mockResolvedValueOnce({ data: { user: { id: "user-1" } } });
+    rpc.mockResolvedValueOnce({ error: null });
+
+    const { POST } = await import("@/app/onboarding/profile/complete/route");
+    const response = await POST(
+      completionRequest(
+        new URLSearchParams({
+          displayName: "Rapid Helper",
+          username: "rapid-helper",
+          next: "/dashboard",
+        }),
+        "sb-project-auth-token=chunk-1; sb-project-auth-token.0=chunk-2",
+      ) as never,
+    );
+
+    expect(getUser).toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith("complete_profile", {
+      candidate_display_name: "Rapid Helper",
+      candidate_username: "rapid-helper",
+    });
     expect(response.headers.get("location")).toBe("https://canigetin.app/dashboard");
   });
 
