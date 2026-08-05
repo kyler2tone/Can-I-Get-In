@@ -29,14 +29,16 @@ export async function SiteHeader() {
               >
                 Dashboard
               </Link>
-              <Link
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-4 py-2 text-sm font-semibold text-brand-strong transition hover:bg-white/60"
-                href="/auth/logout"
-                title="Log out"
-              >
-                <LogOut size={16} aria-hidden="true" />
-                <span className="hidden sm:inline">Log out</span>
-              </Link>
+              <form action="/auth/logout" method="post">
+                <button
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-transparent bg-transparent px-4 py-2 text-sm font-semibold text-brand-strong transition hover:bg-white/60"
+                  title="Log out"
+                  type="submit"
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  <span className="hidden sm:inline">Log out</span>
+                </button>
+              </form>
             </>
           ) : (
             <>

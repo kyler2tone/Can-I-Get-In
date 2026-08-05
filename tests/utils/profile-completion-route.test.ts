@@ -101,6 +101,7 @@ describe("profile completion route", () => {
       candidate_display_name: "Rapid Helper",
       candidate_username: "rapid-helper",
     });
+    expect(signOut).not.toHaveBeenCalled();
     expect(response.headers.get("location")).toBe("https://canigetin.app/dashboard");
   });
 
