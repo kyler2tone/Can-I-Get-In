@@ -1,23 +1,21 @@
-"use client";
-
-import { useActionState } from "react";
-import { completeProfileAction, type ActionState } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { UsernameField } from "@/components/account/username-field";
-
-const initialState: ActionState = { status: "idle", message: "" };
 
 export function ProfileCompletionForm({
   next,
   displayName,
+  error,
 }: {
   next: string;
   displayName: string;
+  error?: string;
 }) {
-  const [state, action, pending] = useActionState(completeProfileAction, initialState);
-
   return (
-    <form action={action} className="space-y-5 border border-line bg-surface p-5">
+    <form
+      action="/onboarding/profile/complete"
+      method="post"
+      className="space-y-5 border border-line bg-surface p-5"
+    >
       <input name="next" type="hidden" value={next} />
       <label className="block text-sm font-medium">
         Display name
@@ -29,18 +27,12 @@ export function ProfileCompletionForm({
         />
       </label>
       <UsernameField />
-      {state.message ? (
-        <p
-          className={`rounded-md px-3 py-2 text-sm ${
-            state.status === "success"
-              ? "bg-emerald-100 text-emerald-900"
-              : "bg-rose-100 text-rose-950"
-          }`}
-        >
-          {state.message}
+      {error ? (
+        <p className="rounded-md bg-rose-100 px-3 py-2 text-sm text-rose-950" role="alert">
+          {error}
         </p>
       ) : null}
-      <Button disabled={pending}>{pending ? "Saving..." : "Complete profile"}</Button>
+      <Button>Complete profile</Button>
     </form>
   );
 }

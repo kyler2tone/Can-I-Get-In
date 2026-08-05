@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  completeProfileSchema,
   emailSchema,
   parseFormString,
   passwordSchema,
@@ -157,35 +156,6 @@ export async function updateProfileAction(
   revalidatePath("/settings/profile");
 
   return { status: "success", message: "Profile updated." };
-}
-
-export async function completeProfileAction(
-  _: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  await requireUser();
-  const parsed = completeProfileSchema.safeParse({
-    displayName: parseFormString(formData, "displayName"),
-    username: parseFormString(formData, "username"),
-  });
-  const next = parseFormString(formData, "next") || "/dashboard";
-
-  if (!parsed.success) {
-    return { status: "error", message: parsed.error.issues[0].message };
-  }
-
-  const supabase = await getSupabaseServerClient();
-  const { error } = await supabase.rpc("complete_profile", {
-    candidate_username: parsed.data.username,
-    candidate_display_name: parsed.data.displayName,
-  });
-
-  if (error) {
-    return { status: "error", message: error.message };
-  }
-
-  revalidatePath("/dashboard");
-  redirect(next.startsWith("/") ? next : "/dashboard");
 }
 
 export async function changeUsernameAction(
