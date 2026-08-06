@@ -22,8 +22,15 @@ Never expose the service-role key through `NEXT_PUBLIC_*`.
    - `https://canigetin.app/auth/callback`
    - `http://localhost:3000/auth/callback`
 4. Enable the Email provider and keep normal signup email confirmation enabled.
-5. Enable Magic Link or OTP email templates using Supabase defaults.
-6. Enable Google provider after completing Google Cloud setup.
+5. In password security settings, configure the project password policy:
+   - Minimum password length: `12`
+   - Require at least one uppercase letter.
+   - Require at least one lowercase letter.
+   - Require at least one number.
+   - Require at least one special character.
+   - Enable leaked password protection if the project plan supports it.
+6. Enable Magic Link or OTP email templates using Supabase defaults.
+7. Enable Google provider after completing Google Cloud setup.
 
 ## Google Cloud
 

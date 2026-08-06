@@ -23,6 +23,7 @@ describe("password field accessibility", () => {
       "autocomplete",
       "new-password",
     );
+    expect(screen.getByLabelText("Confirm password")).toHaveAttribute("minlength", "12");
   });
 
   it("has an accessible show and hide control", () => {

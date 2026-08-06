@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const resetPasswordForEmail = vi.fn();
+const signUp = vi.fn();
 const updateUser = vi.fn();
 const getUser = vi.fn();
+const requireUser = vi.fn();
 const cookieGet = vi.fn();
 const cookieDelete = vi.fn();
 
@@ -24,7 +26,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/auth", () => ({
-  requireUser: vi.fn(),
+  requireUser,
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -32,14 +34,15 @@ vi.mock("@/lib/supabase", () => ({
     auth: {
       getUser,
       resetPasswordForEmail,
+      signUp,
       updateUser,
     },
   })),
 }));
 
 function resetForm({
-  password = "long-enough",
-  confirmPassword = "long-enough",
+  password = "StrongerPass1!",
+  confirmPassword = "StrongerPass1!",
 }: {
   password?: string;
   confirmPassword?: string;
@@ -53,13 +56,17 @@ function resetForm({
 describe("password recovery actions", () => {
   beforeEach(() => {
     resetPasswordForEmail.mockReset();
+    signUp.mockReset();
     updateUser.mockReset();
     getUser.mockReset();
+    requireUser.mockReset();
     cookieGet.mockReset();
     cookieDelete.mockReset();
     resetPasswordForEmail.mockResolvedValue({ error: null });
+    signUp.mockResolvedValue({ error: null });
     updateUser.mockResolvedValue({ error: null });
     getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+    requireUser.mockResolvedValue({ id: "user-1" });
     cookieGet.mockReturnValue({ value: "1" });
     process.env.NEXT_PUBLIC_SITE_URL = "https://canigetin.app";
   });
@@ -93,7 +100,7 @@ describe("password recovery actions", () => {
     const result = await resetPasswordAction({ status: "idle", message: "" }, resetForm());
 
     expect(getUser).toHaveBeenCalled();
-    expect(updateUser).toHaveBeenCalledWith({ password: "long-enough" });
+    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass1!" });
     expect(cookieDelete).toHaveBeenCalledWith("cigi-password-recovery");
     expect(result).toEqual({
       status: "success",
@@ -112,6 +119,56 @@ describe("password recovery actions", () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 
+  it("rejects weak recovery passwords before calling Supabase", async () => {
+    const { resetPasswordAction } = await import("@/lib/actions");
+    const result = await resetPasswordAction(
+      { status: "idle", message: "" },
+      resetForm({ password: "111111111", confirmPassword: "111111111" }),
+    );
+
+    expect(result).toEqual({ status: "error", message: "At least 12 characters" });
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it("uses the same policy for signup passwords", async () => {
+    const formData = new FormData();
+    formData.set("email", "person@example.com");
+    formData.set("password", "111111111");
+    formData.set("confirmPassword", "111111111");
+
+    const { signupAction } = await import("@/lib/actions");
+    const result = await signupAction({ status: "idle", message: "" }, formData);
+
+    expect(result).toEqual({ status: "error", message: "At least 12 characters" });
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
+  it("uses the same policy for account password changes", async () => {
+    const { updateAccountPasswordAction } = await import("@/lib/actions");
+    const result = await updateAccountPasswordAction(
+      { status: "idle", message: "" },
+      resetForm({ password: "111111111", confirmPassword: "111111111" }),
+    );
+
+    expect(result).toEqual({ status: "error", message: "At least 12 characters" });
+    expect(updateUser).not.toHaveBeenCalled();
+  });
+
+  it("updates account passwords when the shared policy passes", async () => {
+    const { updateAccountPasswordAction } = await import("@/lib/actions");
+    const result = await updateAccountPasswordAction(
+      { status: "idle", message: "" },
+      resetForm(),
+    );
+
+    expect(requireUser).toHaveBeenCalled();
+    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass1!" });
+    expect(result).toEqual({
+      status: "success",
+      message: "Your password has been updated.",
+    });
+  });
+
   it("rejects expired recovery sessions", async () => {
     getUser.mockResolvedValueOnce({ data: { user: null } });
 
@@ -123,4 +180,3 @@ describe("password recovery actions", () => {
     expect(updateUser).not.toHaveBeenCalled();
   });
 });
-

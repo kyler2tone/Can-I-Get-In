@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { signInWithGoogleAction, signupAction, type ActionState } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { PasswordField } from "@/components/auth/password-field";
+import { PasswordPolicyChecklist } from "@/components/auth/password-policy-checklist";
+import { validatePasswordPolicy } from "@/lib/password-policy";
 
 const initialState: ActionState = { status: "idle", message: "" };
 
@@ -12,11 +14,8 @@ export function SignupForm() {
   const [state, action, pending] = useActionState(signupAction, initialState);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
-  const passwordHelp = useMemo(
-    () => "Use at least 8 characters. Your browser or password manager can suggest a strong password.",
-    [],
-  );
+  const passwordResult = validatePasswordPolicy(password, confirmPassword);
+  const canSubmit = password.length > 0 && confirmPassword.length > 0 && passwordResult.valid;
 
   return (
     <div className="mx-auto max-w-md px-4 py-12">
@@ -43,13 +42,14 @@ export function SignupForm() {
               required
             />
           </label>
-          <div onChange={(event) => {
-            const target = event.target as HTMLInputElement;
-            if (target.name === "password") setPassword(target.value);
-            if (target.name === "confirmPassword") setConfirmPassword(target.value);
-          }}>
+          <div
+            onChange={(event) => {
+              const target = event.target as HTMLInputElement;
+              if (target.name === "password") setPassword(target.value);
+              if (target.name === "confirmPassword") setConfirmPassword(target.value);
+            }}
+          >
             <PasswordField label="Password" name="password" autoComplete="new-password" />
-            <p className="mt-1 text-xs text-muted">{passwordHelp}</p>
             <div className="mt-4">
               <PasswordField
                 label="Confirm password"
@@ -58,11 +58,11 @@ export function SignupForm() {
               />
             </div>
           </div>
-          {mismatch ? (
-            <p className="rounded-md bg-rose-100 px-3 py-2 text-sm text-rose-950" role="alert">
-              Passwords do not match.
-            </p>
-          ) : null}
+          <PasswordPolicyChecklist
+            confirmation={confirmPassword}
+            password={password}
+            showConfirmation={confirmPassword.length > 0}
+          />
           {state.message ? (
             <p
               className={`rounded-md px-3 py-2 text-sm ${
@@ -74,7 +74,7 @@ export function SignupForm() {
               {state.message}
             </p>
           ) : null}
-          <Button className="w-full" disabled={pending || mismatch}>
+          <Button className="w-full" disabled={pending || !canSubmit}>
             {pending ? "Working..." : "Sign up"}
           </Button>
         </form>

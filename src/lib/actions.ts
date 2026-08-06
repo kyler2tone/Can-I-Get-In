@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import {
   emailSchema,
   parseFormString,
-  passwordSchema,
+  passwordWithConfirmationSchema,
   profileSchema,
   signupSchema,
   usernameSchema,
@@ -28,15 +28,14 @@ const defaultError = "Something went wrong. Please try again.";
 
 export async function loginAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const email = emailSchema.safeParse(parseFormString(formData, "email"));
-  const password = passwordSchema.safeParse(parseFormString(formData, "password"));
+  const password = parseFormString(formData, "password");
 
   if (!email.success) return { status: "error", message: email.error.issues[0].message };
-  if (!password.success) return { status: "error", message: password.error.issues[0].message };
 
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: email.data,
-    password: password.data,
+    password,
   });
 
   if (error) {
@@ -114,12 +113,13 @@ export async function resetPasswordAction(
     };
   }
 
-  const password = passwordSchema.safeParse(parseFormString(formData, "password"));
-  const confirmPassword = parseFormString(formData, "confirmPassword");
+  const parsed = passwordWithConfirmationSchema.safeParse({
+    password: parseFormString(formData, "password"),
+    confirmPassword: parseFormString(formData, "confirmPassword"),
+  });
 
-  if (!password.success) return { status: "error", message: password.error.issues[0].message };
-  if (password.data !== confirmPassword) {
-    return { status: "error", message: "Passwords do not match." };
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
   }
 
   const supabase = await getSupabaseServerClient();
@@ -134,7 +134,7 @@ export async function resetPasswordAction(
     };
   }
 
-  const { error } = await supabase.auth.updateUser({ password: password.data });
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
     return { status: "error", message: error.message };
@@ -143,6 +143,30 @@ export async function resetPasswordAction(
   cookieStore.delete(passwordRecoveryIntentCookie);
 
   return { status: "success", message: "Your password has been updated. Redirecting..." };
+}
+
+export async function updateAccountPasswordAction(
+  _: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireUser();
+  const parsed = passwordWithConfirmationSchema.safeParse({
+    password: parseFormString(formData, "password"),
+    confirmPassword: parseFormString(formData, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0].message };
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  return { status: "success", message: "Your password has been updated." };
 }
 
 export async function updateProfileAction(

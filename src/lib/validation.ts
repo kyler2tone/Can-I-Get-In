@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getPasswordPolicyMessage } from "@/lib/password-policy";
 
 export const emailSchema = z
   .string()
@@ -8,8 +9,13 @@ export const emailSchema = z
 
 export const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters.")
-  .max(128, "Password is too long.");
+  .max(128, "Password is too long.")
+  .superRefine((value, context) => {
+    const message = getPasswordPolicyMessage(value);
+    if (message) {
+      context.addIssue({ code: "custom", message });
+    }
+  });
 
 export const reservedUsernames = new Set([
   "admin",
@@ -78,13 +84,23 @@ export const signupSchema = z
     message: "Passwords do not match.",
   });
 
+export const passwordWithConfirmationSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
+  });
+
 export function parseFormString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
 }
 
 export function passwordStrengthLabel(password: string) {
-  if (password.length >= 12 && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
+  if (!getPasswordPolicyMessage(password)) {
     return "strong";
   }
 

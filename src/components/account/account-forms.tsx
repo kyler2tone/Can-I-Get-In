@@ -1,13 +1,15 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   changeEmailAction,
-  resetPasswordAction,
+  updateAccountPasswordAction,
   type ActionState,
 } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { PasswordField } from "@/components/auth/password-field";
+import { PasswordPolicyChecklist } from "@/components/auth/password-policy-checklist";
+import { validatePasswordPolicy } from "@/lib/password-policy";
 
 const initialState: ActionState = { status: "idle", message: "" };
 
@@ -36,13 +38,36 @@ export function ChangeEmailForm({ email }: { email: string }) {
 }
 
 export function PasswordUpdateForm() {
-  const [state, action, pending] = useActionState(resetPasswordAction, initialState);
+  const [state, action, pending] = useActionState(updateAccountPasswordAction, initialState);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const passwordResult = validatePasswordPolicy(password, confirmPassword);
+  const canSubmit = password.length > 0 && confirmPassword.length > 0 && passwordResult.valid;
 
   return (
     <form action={action} className="space-y-4 border border-line bg-white p-4">
-      <PasswordField label="New password" name="password" autoComplete="new-password" />
+      <div
+        className="space-y-4"
+        onChange={(event) => {
+          const target = event.target as HTMLInputElement;
+          if (target.name === "password") setPassword(target.value);
+          if (target.name === "confirmPassword") setConfirmPassword(target.value);
+        }}
+      >
+        <PasswordField label="New password" name="password" autoComplete="new-password" />
+        <PasswordField
+          label="Confirm password"
+          name="confirmPassword"
+          autoComplete="new-password"
+        />
+        <PasswordPolicyChecklist
+          confirmation={confirmPassword}
+          password={password}
+          showConfirmation={confirmPassword.length > 0}
+        />
+      </div>
       <Message state={state} />
-      <Button disabled={pending} variant="secondary">
+      <Button disabled={pending || !canSubmit} variant="secondary">
         {pending ? "Updating..." : "Update password"}
       </Button>
     </form>

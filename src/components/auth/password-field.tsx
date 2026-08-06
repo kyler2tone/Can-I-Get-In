@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { passwordMinLength } from "@/lib/password-policy";
 
 export function PasswordField({
   label,
@@ -23,7 +24,7 @@ export function PasswordField({
           name={name}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}
-          minLength={8}
+          minLength={passwordMinLength}
           required
         />
         <button

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   passwordStrengthLabel,
+  passwordWithConfirmationSchema,
   reservedUsernames,
   signupSchema,
   usernameSchema,
 } from "@/lib/validation";
+import { validatePasswordPolicy } from "@/lib/password-policy";
 
 describe("username validation", () => {
   it("accepts and normalizes safe usernames", () => {
@@ -26,8 +28,8 @@ describe("signup validation", () => {
     expect(
       signupSchema.safeParse({
         email: "person@example.com",
-        password: "long-enough",
-        confirmPassword: "long-enough",
+        password: "StrongerPass1!",
+        confirmPassword: "StrongerPass1!",
       }).success,
     ).toBe(true);
     expect(
@@ -40,10 +42,63 @@ describe("signup validation", () => {
   });
 });
 
-describe("password strength labels", () => {
-  it("labels passwords by minimum project rules", () => {
+describe("password policy", () => {
+  it("rejects passwords that are too short", () => {
+    expect(validatePasswordPolicy("Aa1!short").valid).toBe(false);
+    expect(passwordWithConfirmationSchema.safeParse({
+      password: "Aa1!short",
+      confirmPassword: "Aa1!short",
+    }).success).toBe(false);
+  });
+
+  it("rejects passwords missing uppercase letters", () => {
+    expect(validatePasswordPolicy("strongerpass1!").errors).toContain(
+      "At least one uppercase letter",
+    );
+  });
+
+  it("rejects passwords missing lowercase letters", () => {
+    expect(validatePasswordPolicy("STRONGERPASS1!").errors).toContain(
+      "At least one lowercase letter",
+    );
+  });
+
+  it("rejects passwords missing numbers", () => {
+    expect(validatePasswordPolicy("StrongerPass!!").errors).toContain("At least one number");
+  });
+
+  it("rejects passwords missing special characters", () => {
+    expect(validatePasswordPolicy("StrongerPass12").errors).toContain(
+      "At least one special character",
+    );
+  });
+
+  it("rejects mismatched confirmation values", () => {
+    expect(validatePasswordPolicy("StrongerPass1!", "DifferentPass1!").errors).toContain(
+      "Passwords do not match.",
+    );
+    expect(passwordWithConfirmationSchema.safeParse({
+      password: "StrongerPass1!",
+      confirmPassword: "DifferentPass1!",
+    }).success).toBe(false);
+  });
+
+  it("accepts valid passwords consistently", () => {
+    expect(validatePasswordPolicy("StrongerPass1!", "StrongerPass1!").valid).toBe(true);
+    expect(passwordWithConfirmationSchema.safeParse({
+      password: "StrongerPass1!",
+      confirmPassword: "StrongerPass1!",
+    }).success).toBe(true);
+    expect(signupSchema.safeParse({
+      email: "person@example.com",
+      password: "StrongerPass1!",
+      confirmPassword: "StrongerPass1!",
+    }).success).toBe(true);
+  });
+
+  it("labels passwords by the shared project policy", () => {
     expect(passwordStrengthLabel("short")).toBe("too_short");
     expect(passwordStrengthLabel("longenough")).toBe("usable");
-    expect(passwordStrengthLabel("long-enough-123")).toBe("strong");
+    expect(passwordStrengthLabel("StrongerPass1!")).toBe("strong");
   });
 });

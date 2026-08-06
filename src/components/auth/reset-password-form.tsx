@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { resetPasswordAction, type ActionState } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button";
 import { PasswordField } from "@/components/auth/password-field";
+import { PasswordPolicyChecklist } from "@/components/auth/password-policy-checklist";
+import { validatePasswordPolicy } from "@/lib/password-policy";
 
 export function ResetPasswordForm({
   canResetPassword,
@@ -17,6 +19,10 @@ export function ResetPasswordForm({
     status: initialError ? "error" : "idle",
     message: initialError ?? "",
   } satisfies ActionState);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const passwordResult = validatePasswordPolicy(password, confirmPassword);
+  const canSubmit = password.length > 0 && confirmPassword.length > 0 && passwordResult.valid;
 
   useEffect(() => {
     if (state.status !== "success") return;
@@ -33,14 +39,26 @@ export function ResetPasswordForm({
       <h1 className="text-2xl font-semibold">Reset password</h1>
       <p className="text-sm text-muted">Choose a new password for your account.</p>
       {canResetPassword ? (
-        <>
+        <div
+          className="space-y-4"
+          onChange={(event) => {
+            const target = event.target as HTMLInputElement;
+            if (target.name === "password") setPassword(target.value);
+            if (target.name === "confirmPassword") setConfirmPassword(target.value);
+          }}
+        >
           <PasswordField label="New password" name="password" autoComplete="new-password" />
           <PasswordField
             label="Confirm password"
             name="confirmPassword"
             autoComplete="new-password"
           />
-        </>
+          <PasswordPolicyChecklist
+            confirmation={confirmPassword}
+            password={password}
+            showConfirmation={confirmPassword.length > 0}
+          />
+        </div>
       ) : null}
       {state.message ? (
         <p
@@ -54,7 +72,7 @@ export function ResetPasswordForm({
         </p>
       ) : null}
       {canResetPassword ? (
-        <Button className="w-full" disabled={pending}>
+        <Button className="w-full" disabled={pending || !canSubmit}>
           {pending ? "Updating..." : "Update password"}
         </Button>
       ) : (

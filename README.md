@@ -79,6 +79,7 @@ Apply the project's Supabase migrations to initialize the database schema. Then 
 - Redirect URLs include `http://localhost:3000/auth/callback`.
 - Production redirect URLs include `https://canigetin.app/auth/callback`.
 - Google OAuth is enabled only after configuring Google Cloud and the Supabase Google provider.
+- Password policy is set to minimum 12 characters and requires uppercase letters, lowercase letters, numbers, and special characters.
 - Storage buckets `avatars` and `place-photos` exist with the policies from the migration.
 - RLS is enabled and tested for anon, Contributor, Moderator, and Admin roles.
 
