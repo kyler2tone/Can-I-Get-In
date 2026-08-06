@@ -38,7 +38,7 @@ export function SignupForm() {
               className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
               name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </label>
@@ -49,9 +49,15 @@ export function SignupForm() {
               if (target.name === "confirmPassword") setConfirmPassword(target.value);
             }}
           >
-            <PasswordField label="Password" name="password" autoComplete="new-password" />
+            <PasswordField
+              id="signup-password"
+              label="Password"
+              name="password"
+              autoComplete="new-password"
+            />
             <div className="mt-4">
               <PasswordField
+                id="signup-confirm-password"
                 label="Confirm password"
                 name="confirmPassword"
                 autoComplete="new-password"
@@ -74,7 +80,7 @@ export function SignupForm() {
               {state.message}
             </p>
           ) : null}
-          <Button className="w-full" disabled={pending || !canSubmit}>
+          <Button className="w-full" disabled={pending || !canSubmit} type="submit">
             {pending ? "Working..." : "Sign up"}
           </Button>
         </form>

@@ -22,7 +22,6 @@ describe("reset password form", () => {
     expect(screen.getByText("At least one uppercase letter")).toBeInTheDocument();
     expect(screen.getByText("At least one lowercase letter")).toBeInTheDocument();
     expect(screen.getByText("At least one number")).toBeInTheDocument();
-    expect(screen.getByText("At least one special character")).toBeInTheDocument();
   });
 
   it("enables submission only when the shared password policy passes", () => {
@@ -32,10 +31,10 @@ describe("reset password form", () => {
     expect(submit).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText("New password"), {
-      target: { value: "StrongerPass1!" },
+      target: { value: "StrongerPass12" },
     });
     fireEvent.change(screen.getByLabelText("Confirm password"), {
-      target: { value: "StrongerPass1!" },
+      target: { value: "StrongerPass12" },
     });
 
     expect(submit).toBeEnabled();

@@ -42,13 +42,13 @@ export function LoginForm() {
               className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
               name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </label>
           <PasswordField label="Password" name="password" autoComplete="current-password" />
           {passwordState.message ? <AuthMessage state={passwordState} /> : null}
-          <Button className="w-full" disabled={passwordPending}>
+          <Button className="w-full" disabled={passwordPending} type="submit">
             {passwordPending ? "Working..." : "Log in"}
           </Button>
         </form>
@@ -59,7 +59,7 @@ export function LoginForm() {
               className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
               name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </label>

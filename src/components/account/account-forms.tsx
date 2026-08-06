@@ -54,8 +54,14 @@ export function PasswordUpdateForm() {
           if (target.name === "confirmPassword") setConfirmPassword(target.value);
         }}
       >
-        <PasswordField label="New password" name="password" autoComplete="new-password" />
         <PasswordField
+          id="account-new-password"
+          label="New password"
+          name="password"
+          autoComplete="new-password"
+        />
+        <PasswordField
+          id="account-confirm-password"
           label="Confirm password"
           name="confirmPassword"
           autoComplete="new-password"
@@ -67,7 +73,7 @@ export function PasswordUpdateForm() {
         />
       </div>
       <Message state={state} />
-      <Button disabled={pending || !canSubmit} variant="secondary">
+      <Button disabled={pending || !canSubmit} type="submit" variant="secondary">
         {pending ? "Updating..." : "Update password"}
       </Button>
     </form>

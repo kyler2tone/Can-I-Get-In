@@ -28,8 +28,8 @@ describe("signup validation", () => {
     expect(
       signupSchema.safeParse({
         email: "person@example.com",
-        password: "StrongerPass1!",
-        confirmPassword: "StrongerPass1!",
+        password: "StrongerPass12",
+        confirmPassword: "StrongerPass12",
       }).success,
     ).toBe(true);
     expect(
@@ -67,38 +67,32 @@ describe("password policy", () => {
     expect(validatePasswordPolicy("StrongerPass!!").errors).toContain("At least one number");
   });
 
-  it("rejects passwords missing special characters", () => {
-    expect(validatePasswordPolicy("StrongerPass12").errors).toContain(
-      "At least one special character",
-    );
-  });
-
   it("rejects mismatched confirmation values", () => {
-    expect(validatePasswordPolicy("StrongerPass1!", "DifferentPass1!").errors).toContain(
+    expect(validatePasswordPolicy("StrongerPass12", "DifferentPass12").errors).toContain(
       "Passwords do not match.",
     );
     expect(passwordWithConfirmationSchema.safeParse({
-      password: "StrongerPass1!",
-      confirmPassword: "DifferentPass1!",
+      password: "StrongerPass12",
+      confirmPassword: "DifferentPass12",
     }).success).toBe(false);
   });
 
   it("accepts valid passwords consistently", () => {
-    expect(validatePasswordPolicy("StrongerPass1!", "StrongerPass1!").valid).toBe(true);
+    expect(validatePasswordPolicy("StrongerPass12", "StrongerPass12").valid).toBe(true);
     expect(passwordWithConfirmationSchema.safeParse({
-      password: "StrongerPass1!",
-      confirmPassword: "StrongerPass1!",
+      password: "StrongerPass12",
+      confirmPassword: "StrongerPass12",
     }).success).toBe(true);
     expect(signupSchema.safeParse({
       email: "person@example.com",
-      password: "StrongerPass1!",
-      confirmPassword: "StrongerPass1!",
+      password: "StrongerPass12",
+      confirmPassword: "StrongerPass12",
     }).success).toBe(true);
   });
 
   it("labels passwords by the shared project policy", () => {
     expect(passwordStrengthLabel("short")).toBe("too_short");
     expect(passwordStrengthLabel("longenough")).toBe("usable");
-    expect(passwordStrengthLabel("StrongerPass1!")).toBe("strong");
+    expect(passwordStrengthLabel("StrongerPass12")).toBe("strong");
   });
 });

@@ -7,20 +7,23 @@ import { passwordMinLength } from "@/lib/password-policy";
 export function PasswordField({
   label,
   name,
+  id = name,
   autoComplete,
 }: {
   label: string;
   name: string;
+  id?: string;
   autoComplete: "current-password" | "new-password";
 }) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <label className="block text-sm font-medium">
+    <label className="block text-sm font-medium" htmlFor={id}>
       {label}
       <span className="mt-1 flex rounded-md border border-line bg-white focus-within:outline focus-within:outline-2 focus-within:outline-brand">
         <input
           className="min-w-0 flex-1 rounded-l-md px-3 py-2 outline-none"
+          id={id}
           name={name}
           type={visible ? "text" : "password"}
           autoComplete={autoComplete}

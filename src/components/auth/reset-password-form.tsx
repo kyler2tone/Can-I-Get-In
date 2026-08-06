@@ -47,8 +47,14 @@ export function ResetPasswordForm({
             if (target.name === "confirmPassword") setConfirmPassword(target.value);
           }}
         >
-          <PasswordField label="New password" name="password" autoComplete="new-password" />
           <PasswordField
+            id="reset-password"
+            label="New password"
+            name="password"
+            autoComplete="new-password"
+          />
+          <PasswordField
+            id="reset-confirm-password"
             label="Confirm password"
             name="confirmPassword"
             autoComplete="new-password"
@@ -72,7 +78,7 @@ export function ResetPasswordForm({
         </p>
       ) : null}
       {canResetPassword ? (
-        <Button className="w-full" disabled={pending || !canSubmit}>
+        <Button className="w-full" disabled={pending || !canSubmit} type="submit">
           {pending ? "Updating..." : "Update password"}
         </Button>
       ) : (

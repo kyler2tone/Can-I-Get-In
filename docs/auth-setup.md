@@ -27,7 +27,7 @@ Never expose the service-role key through `NEXT_PUBLIC_*`.
    - Require at least one uppercase letter.
    - Require at least one lowercase letter.
    - Require at least one number.
-   - Require at least one special character.
+   - Leave any additional character requirements disabled.
    - Enable leaked password protection if the project plan supports it.
 6. Enable Magic Link or OTP email templates using Supabase defaults.
 7. Enable Google provider after completing Google Cloud setup.

@@ -38,7 +38,7 @@ export function AuthForm({
               className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
               name="email"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
             />
           </label>
@@ -66,7 +66,7 @@ export function AuthForm({
               {state.message}
             </p>
           ) : null}
-          <Button className="w-full" disabled={pending}>
+          <Button className="w-full" disabled={pending} type="submit">
             {pending ? "Working..." : submitLabel}
           </Button>
         </form>

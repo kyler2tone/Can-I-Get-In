@@ -41,8 +41,8 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 function resetForm({
-  password = "StrongerPass1!",
-  confirmPassword = "StrongerPass1!",
+  password = "StrongerPass12",
+  confirmPassword = "StrongerPass12",
 }: {
   password?: string;
   confirmPassword?: string;
@@ -100,7 +100,7 @@ describe("password recovery actions", () => {
     const result = await resetPasswordAction({ status: "idle", message: "" }, resetForm());
 
     expect(getUser).toHaveBeenCalled();
-    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass1!" });
+    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass12" });
     expect(cookieDelete).toHaveBeenCalledWith("cigi-password-recovery");
     expect(result).toEqual({
       status: "success",
@@ -162,10 +162,28 @@ describe("password recovery actions", () => {
     );
 
     expect(requireUser).toHaveBeenCalled();
-    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass1!" });
+    expect(updateUser).toHaveBeenCalledWith({ password: "StrongerPass12" });
     expect(result).toEqual({
       status: "success",
       message: "Your password has been updated.",
+    });
+  });
+
+  it("surfaces backend password policy errors without implementation details", async () => {
+    updateUser.mockResolvedValueOnce({
+      error: { message: "Password should contain a different character class." },
+    });
+
+    const { updateAccountPasswordAction } = await import("@/lib/actions");
+    const result = await updateAccountPasswordAction(
+      { status: "idle", message: "" },
+      resetForm(),
+    );
+
+    expect(result).toEqual({
+      status: "error",
+      message:
+        "Password must be at least 12 characters and include uppercase letters, lowercase letters, and numbers.",
     });
   });
 

@@ -25,6 +25,18 @@ export type ActionState = {
 };
 
 const defaultError = "Something went wrong. Please try again.";
+const passwordPolicyError =
+  "Password must be at least 12 characters and include uppercase letters, lowercase letters, and numbers.";
+
+function authErrorMessage(error: { message?: string } | null | undefined) {
+  if (!error?.message) return defaultError;
+
+  if (/password/i.test(error.message)) {
+    return passwordPolicyError;
+  }
+
+  return error.message;
+}
 
 export async function loginAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const email = emailSchema.safeParse(parseFormString(formData, "email"));
@@ -66,7 +78,7 @@ export async function signupAction(_: ActionState, formData: FormData): Promise<
   });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: authErrorMessage(error) };
   }
 
   return {
@@ -137,7 +149,7 @@ export async function resetPasswordAction(
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: authErrorMessage(error) };
   }
 
   cookieStore.delete(passwordRecoveryIntentCookie);
@@ -163,7 +175,7 @@ export async function updateAccountPasswordAction(
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
 
   if (error) {
-    return { status: "error", message: error.message };
+    return { status: "error", message: authErrorMessage(error) };
   }
 
   return { status: "success", message: "Your password has been updated." };

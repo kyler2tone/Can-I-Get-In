@@ -21,11 +21,6 @@ export const passwordPolicyRequirements = [
     label: "At least one number",
     test: (password: string) => /[0-9]/.test(password),
   },
-  {
-    id: "special",
-    label: "At least one special character",
-    test: (password: string) => /[^A-Za-z0-9]/.test(password),
-  },
 ] as const;
 
 export type PasswordRequirementId = (typeof passwordPolicyRequirements)[number]["id"];
@@ -74,4 +69,3 @@ export function getPasswordPolicyMessage(password: string, confirmation?: string
   const result = validatePasswordPolicy(password, confirmation);
   return result.errors[0] ?? "";
 }
-
