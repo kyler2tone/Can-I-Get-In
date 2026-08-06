@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getAuthCallbackUrl,
   getAuthExchangeCallbackUrl,
+  getPasswordRecoveryCallbackUrl,
   getSiteUrl,
   normalizeCallbackNext,
 } from "@/lib/auth-urls";
@@ -18,6 +19,9 @@ describe("auth URL helpers", () => {
     expect(getAuthExchangeCallbackUrl()).toBe("https://canigetin.app/auth/callback");
     expect(getAuthCallbackUrl("/onboarding/profile")).toBe(
       "https://canigetin.app/auth/callback?next=%2Fonboarding%2Fprofile",
+    );
+    expect(getPasswordRecoveryCallbackUrl()).toBe(
+      "https://canigetin.app/auth/callback?intent=recovery",
     );
   });
 

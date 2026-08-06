@@ -10,9 +10,14 @@ import {
   signupSchema,
   usernameSchema,
 } from "@/lib/validation";
+import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { getAuthExchangeCallbackUrl } from "@/lib/auth-urls";
+import { getAuthExchangeCallbackUrl, getPasswordRecoveryCallbackUrl } from "@/lib/auth-urls";
+import {
+  passwordRecoveryIntentCookie,
+  passwordRecoveryIntentValue,
+} from "@/lib/password-recovery";
 
 export type ActionState = {
   status: "idle" | "success" | "error";
@@ -81,7 +86,7 @@ export async function forgotPasswordAction(
 
   const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
-    redirectTo: getAuthExchangeCallbackUrl(),
+    redirectTo: getPasswordRecoveryCallbackUrl(),
   });
 
   if (error) {
@@ -98,18 +103,46 @@ export async function resetPasswordAction(
   _: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const cookieStore = await cookies();
+  const hasRecoveryIntent =
+    cookieStore.get(passwordRecoveryIntentCookie)?.value === passwordRecoveryIntentValue;
+
+  if (!hasRecoveryIntent) {
+    return {
+      status: "error",
+      message: "This password reset link is invalid or expired. Request a new reset email.",
+    };
+  }
+
   const password = passwordSchema.safeParse(parseFormString(formData, "password"));
+  const confirmPassword = parseFormString(formData, "confirmPassword");
 
   if (!password.success) return { status: "error", message: password.error.issues[0].message };
+  if (password.data !== confirmPassword) {
+    return { status: "error", message: "Passwords do not match." };
+  }
 
   const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      status: "error",
+      message: "This password reset link is invalid or expired. Request a new reset email.",
+    };
+  }
+
   const { error } = await supabase.auth.updateUser({ password: password.data });
 
   if (error) {
     return { status: "error", message: error.message };
   }
 
-  return { status: "success", message: "Your password has been updated." };
+  cookieStore.delete(passwordRecoveryIntentCookie);
+
+  return { status: "success", message: "Your password has been updated. Redirecting..." };
 }
 
 export async function updateProfileAction(

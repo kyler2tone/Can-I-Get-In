@@ -130,6 +130,20 @@ describe("auth callback route", () => {
     expect(getSetCookieHeaders(response).length).toBeGreaterThanOrEqual(1);
   });
 
+  it("redirects recovery callbacks to reset password with recovery intent", async () => {
+    setSupabaseMock({ profileCompleted: true });
+
+    const { GET } = await import("@/app/auth/callback/route");
+    const response = await GET(
+      new NextRequest("https://canigetin.app/auth/callback?code=abc&intent=recovery"),
+    );
+    const setCookies = getSetCookieHeaders(response).join("\n");
+
+    expect(response.headers.get("location")).toBe("https://canigetin.app/auth/reset-password");
+    expect(setCookies).toContain("cigi-password-recovery=1");
+    expect(setCookies).toContain("Path=/auth/reset-password");
+  });
+
   it("redirects callback exchange errors to login", async () => {
     setSupabaseMock({ exchangeError: new Error("bad code"), scheduledCookies: [] });
 

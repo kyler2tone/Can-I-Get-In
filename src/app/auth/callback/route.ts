@@ -2,6 +2,12 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSiteUrl, normalizeCallbackNext } from "@/lib/auth-urls";
 import { getCallbackErrorDestination, getPostAuthDestination } from "@/lib/auth-callback";
+import {
+  isPasswordRecoveryIntent,
+  passwordRecoveryIntentCookie,
+  passwordRecoveryIntentMaxAge,
+  passwordRecoveryIntentValue,
+} from "@/lib/password-recovery";
 
 type ScheduledCookie = {
   name: string;
@@ -29,6 +35,7 @@ function createCallbackSupabaseClient(request: NextRequest, scheduledCookies: Sc
 function redirectWithScheduledCookies(
   destination: string,
   scheduledCookies: ScheduledCookie[],
+  options: { recoveryIntent?: boolean } = {},
 ) {
   const response = NextResponse.redirect(new URL(destination, getSiteUrl()));
 
@@ -41,6 +48,16 @@ function redirectWithScheduledCookies(
     });
   });
 
+  if (options.recoveryIntent) {
+    response.cookies.set(passwordRecoveryIntentCookie, passwordRecoveryIntentValue, {
+      httpOnly: true,
+      maxAge: passwordRecoveryIntentMaxAge,
+      path: "/auth/reset-password",
+      sameSite: "lax",
+      secure: getSiteUrl().startsWith("https://"),
+    });
+  }
+
   return response;
 }
 
@@ -49,6 +66,8 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = normalizeCallbackNext(requestUrl.searchParams.get("next"));
   const authType = requestUrl.searchParams.get("type");
+  const intent = requestUrl.searchParams.get("intent");
+  const recoveryIntent = isPasswordRecoveryIntent(intent) || isPasswordRecoveryIntent(authType);
   const scheduledCookies: ScheduledCookie[] = [];
 
   if (!code) {
@@ -75,6 +94,10 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
     : { data: null };
 
-  const destination = getPostAuthDestination({ profile, requestedNext: next, authType });
-  return redirectWithScheduledCookies(destination, scheduledCookies);
+  const destination = getPostAuthDestination({
+    profile,
+    requestedNext: next,
+    authType: recoveryIntent ? "recovery" : authType,
+  });
+  return redirectWithScheduledCookies(destination, scheduledCookies, { recoveryIntent });
 }
