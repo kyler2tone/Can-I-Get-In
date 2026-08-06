@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PhotoGallery } from "@/components/places/photo-gallery";
 import { formatEntryOutcome, samplePlaces } from "@/lib/sample-data";
-import { getPlacePageData, getPlacePhotos } from "@/lib/places";
+import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
 import type { EntryOutcome } from "@/lib/types";
 
@@ -25,7 +25,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
 
   if (!place) notFound();
 
-  const photos = await getPlacePhotos(place.id);
+  const photos = await getApprovedPlacePhotos(place.id);
   const currentEntryStatus = place.currentEntryStatus as EntryOutcome;
 
   return (

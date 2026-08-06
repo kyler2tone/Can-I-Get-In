@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { PhotoUploader } from "@/components/contributions/photo-uploader";
 import { requireCompletedProfile } from "@/lib/auth";
-import { getPlacePageData, getPlacePhotos } from "@/lib/places";
+import { getManageablePlacePhotos, getPlacePageData } from "@/lib/places";
 
 export const metadata = {
   title: "Contribute Photos",
@@ -25,7 +25,7 @@ export default async function PlaceContributePage({
     redirect(`/places/${slug}`);
   }
 
-  const photos = await getPlacePhotos(place.id);
+  const photos = await getManageablePlacePhotos(place.id);
 
   return (
     <PageShell>

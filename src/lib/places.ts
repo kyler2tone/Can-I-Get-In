@@ -20,10 +20,12 @@ export type DatabasePlace = {
 export type PlacePhoto = {
   id: string;
   place_id: string;
-  uploader_id: string;
+  uploader_id: string | null;
   storage_path: string;
   category: PhotoCategory;
   moderation_status: "pending" | "approved" | "hidden" | "rejected";
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   created_at: string;
   signedUrl: string | null;
   canManage: boolean;
@@ -74,7 +76,15 @@ export async function getPlacePageData(slug: string) {
   };
 }
 
-export async function getPlacePhotos(placeId: string | null) {
+export async function getApprovedPlacePhotos(placeId: string | null) {
+  return getPlacePhotos(placeId, { approvedOnly: true });
+}
+
+export async function getManageablePlacePhotos(placeId: string | null) {
+  return getPlacePhotos(placeId, { approvedOnly: false });
+}
+
+async function getPlacePhotos(placeId: string | null, { approvedOnly }: { approvedOnly: boolean }) {
   if (!placeId) {
     return [];
   }
@@ -84,11 +94,19 @@ export async function getPlacePhotos(placeId: string | null) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data } = await supabase
+  let query = supabase
     .from("place_photos")
-    .select("id, place_id, uploader_id, storage_path, category, moderation_status, created_at")
+    .select(
+      "id, place_id, uploader_id, storage_path, category, moderation_status, reviewed_by, reviewed_at, created_at",
+    )
     .eq("place_id", placeId)
     .order("created_at", { ascending: false });
+
+  if (approvedOnly) {
+    query = query.eq("moderation_status", "approved");
+  }
+
+  const { data } = await query;
 
   const photos = (data ?? []) as Omit<PlacePhoto, "signedUrl" | "canManage">[];
 
