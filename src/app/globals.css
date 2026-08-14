@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f5ef;
-  --foreground: #17201b;
-  --surface: #fffdf7;
-  --muted: #5f6b63;
-  --line: #d8d5c7;
-  --brand: #146c67;
-  --brand-strong: #0d4f4c;
-  --accent: #d84f31;
-  --sky: #dbeafe;
+  --background: #f6f9ff;
+  --foreground: #071638;
+  --surface: #ffffff;
+  --muted: #58677f;
+  --line: #dbe4f2;
+  --brand: #095bf0;
+  --brand-strong: #073a9b;
+  --accent: #ff6a3d;
+  --sky: #eaf2ff;
 }
 
 @theme inline {
@@ -45,4 +45,15 @@ select {
 
 .maplibregl-ctrl-attrib {
   font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
