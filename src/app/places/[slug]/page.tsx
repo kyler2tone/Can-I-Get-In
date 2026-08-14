@@ -9,9 +9,7 @@ import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
 import type { EntryOutcome } from "@/lib/types";
 
-export function generateStaticParams() {
-  return [];
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

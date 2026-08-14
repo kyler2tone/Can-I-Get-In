@@ -11,6 +11,28 @@ import type { DiscoveryPlace } from "@/lib/discovery";
 
 type LocationState = "idle" | "loading" | "available" | "denied" | "unavailable" | "error";
 
+const discoveryMapStyle: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    cartoLight: {
+      type: "raster",
+      tiles: ["https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    },
+  },
+  layers: [
+    {
+      id: "carto-light",
+      type: "raster",
+      source: "cartoLight",
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
+
 export function DiscoveryMap({
   initialPlaces,
   initialQuery = "",
@@ -54,7 +76,7 @@ export function DiscoveryMap({
     const center = mapCenter(validPlaces, userLocation);
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "https://demotiles.maplibre.org/style.json",
+      style: discoveryMapStyle,
       center,
       zoom: validPlaces.length ? 12 : 3,
       attributionControl: { compact: true },
