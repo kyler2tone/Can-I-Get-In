@@ -5,7 +5,6 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const input = url.searchParams.get("input") ?? "";
   const sessionToken = url.searchParams.get("sessionToken") ?? "";
-  const city = url.searchParams.get("city") ?? "";
   const latitude = parseOptionalCoordinate(url.searchParams.get("lat"));
   const longitude = parseOptionalCoordinate(url.searchParams.get("lng"));
 
@@ -14,7 +13,6 @@ export async function GET(request: Request) {
       input,
       sessionToken,
       context: {
-        city,
         latitude,
         longitude,
       },

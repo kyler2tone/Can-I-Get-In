@@ -46,7 +46,6 @@ const categoryOptions = [
 
 export function AddPlaceWorkflow() {
   const [query, setQuery] = useState("");
-  const [city, setCity] = useState("");
   const [existingPlaces, setExistingPlaces] = useState<ExistingPlace[]>([]);
   const [googleResults, setGoogleResults] = useState<GoogleSuggestion[]>([]);
   const [message, setMessage] = useState("");
@@ -67,9 +66,8 @@ export function AddPlaceWorkflow() {
   useEffect(() => {
     const handle = window.setTimeout(async () => {
       const searchQuery = query.trim();
-      const searchCity = city.trim();
 
-      if (searchQuery.length < 2 && searchCity.length < 2) {
+      if (searchQuery.length < 2) {
         setExistingPlaces([]);
         setExistingState("idle");
         return;
@@ -79,7 +77,6 @@ export function AddPlaceWorkflow() {
       try {
         const params = new URLSearchParams();
         params.set("q", searchQuery);
-        params.set("city", searchCity);
         const response = await fetch(`/api/places/search?${params.toString()}`);
         if (!response.ok) throw new Error("Search failed");
         const payload = (await response.json()) as { places: ExistingPlace[] };
@@ -91,7 +88,7 @@ export function AddPlaceWorkflow() {
     }, 250);
 
     return () => window.clearTimeout(handle);
-  }, [query, city]);
+  }, [query]);
 
   useEffect(() => {
     const handle = window.setTimeout(async () => {
@@ -107,9 +104,7 @@ export function AddPlaceWorkflow() {
           input: query.trim(),
           sessionToken,
         });
-        if (city.trim()) {
-          params.set("city", city.trim());
-        } else if (searchLocation) {
+        if (searchLocation) {
           params.set("lat", String(searchLocation.latitude));
           params.set("lng", String(searchLocation.longitude));
         }
@@ -126,7 +121,7 @@ export function AddPlaceWorkflow() {
     }, 350);
 
     return () => window.clearTimeout(handle);
-  }, [query, city, canSearchGoogle, searchLocation, sessionToken]);
+  }, [query, canSearchGoogle, searchLocation, sessionToken]);
 
   async function addGooglePlace(placeId: string) {
     setSelectedPlaceId(placeId);
@@ -220,15 +215,11 @@ export function AddPlaceWorkflow() {
           longitude: position.coords.longitude,
         });
         setSearchLocationState("available");
-        setMessage(
-          city.trim()
-            ? "City search is active, so browser location will not change these results."
-            : "Using your location to prefer nearby verified places.",
-        );
+        setMessage("Using your location to prefer nearby verified places.");
       },
       () => {
         setSearchLocationState("unavailable");
-        setMessage("Location could not be added. You can enter a city instead.");
+        setMessage("Location could not be added. You can include a city in your search instead.");
       },
       { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 10000 },
     );
@@ -237,9 +228,9 @@ export function AddPlaceWorkflow() {
   const emptyExistingMessage = useMemo(() => {
     if (existingState === "loading") return "Searching Can I Get In?...";
     if (existingState === "error") return "Existing place search is unavailable right now.";
-    if (query.trim().length < 2 && city.trim().length < 2) return "Start by searching for the place.";
+    if (query.trim().length < 2) return "Start by searching for the place.";
     return "No matching Can I Get In? place found yet.";
-  }, [city, existingState, query]);
+  }, [existingState, query]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -249,7 +240,7 @@ export function AddPlaceWorkflow() {
           <p className="mt-2 text-sm leading-6 text-muted">
             If this place is already here, jump straight into the photo contribution flow.
           </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_180px]">
+          <div className="mt-5 grid gap-3">
             <label>
               <span className="text-sm font-medium">Place name or address</span>
               <span className="relative mt-1 block">
@@ -257,21 +248,11 @@ export function AddPlaceWorkflow() {
                 <input
                   className="h-11 w-full rounded-md border border-line bg-white pl-10 pr-3"
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Main Street Cafe"
+                  placeholder="Main Street Cafe Rapid City or ARIA Las Vegas"
                   type="search"
                   value={query}
                 />
               </span>
-            </label>
-            <label>
-              <span className="text-sm font-medium">City</span>
-              <input
-                className="mt-1 h-11 w-full rounded-md border border-line bg-white px-3"
-                onChange={(event) => setCity(event.target.value)}
-                placeholder="Rapid City"
-                type="search"
-                value={city}
-              />
             </label>
           </div>
           <div className="mt-5 grid gap-3" aria-live="polite">
@@ -319,7 +300,7 @@ export function AddPlaceWorkflow() {
               {searchLocationState === "loading" ? "Finding location..." : "Use my location for search"}
             </Button>
             <p className="text-xs text-muted">
-              Typed city or location takes priority over browser location.
+              Include a city or address in the search box when you want results somewhere else.
             </p>
           </div>
           <div className="mt-5 grid gap-3" aria-live="polite">

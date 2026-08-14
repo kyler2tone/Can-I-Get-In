@@ -19,7 +19,6 @@ export type GooglePlaceSuggestion = {
 };
 
 export type GooglePlacesSearchContext = {
-  city?: string;
   latitude?: number | null;
   longitude?: number | null;
 };
@@ -76,7 +75,6 @@ export async function searchGooglePlaces({
 }) {
   const apiKey = getGooglePlacesApiKey();
   const normalizedInput = input.trim();
-  const requestInput = buildAutocompleteInput(normalizedInput, context.city);
   const parsedToken = googleSessionTokenSchema.safeParse(sessionToken);
   const locationBias = buildLocationBias(context);
 
@@ -91,7 +89,7 @@ export async function searchGooglePlaces({
       "X-Goog-FieldMask": autocompleteFieldMask,
     },
     body: JSON.stringify({
-      input: requestInput,
+      input: normalizedInput,
       sessionToken: parsedToken.data,
       languageCode: "en",
       regionCode: "us",
@@ -213,16 +211,7 @@ function getGooglePlacesApiKey() {
   return apiKey;
 }
 
-function buildAutocompleteInput(input: string, city = "") {
-  const normalizedCity = city.trim();
-  if (!normalizedCity) return input;
-
-  return `${input} ${normalizedCity}`;
-}
-
 function buildLocationBias(context: GooglePlacesSearchContext) {
-  if (context.city?.trim()) return null;
-
   const latitude = Number(context.latitude);
   const longitude = Number(context.longitude);
   if (!validCoordinates({ latitude, longitude })) return null;

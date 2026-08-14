@@ -77,7 +77,7 @@ describe("Google Places transformation", () => {
     );
   });
 
-  it("uses explicitly entered city text before browser-location bias", async () => {
+  it("uses the complete search text without requiring a separate city field", async () => {
     const fetcherMock = vi.fn(async () => ({
       ok: true,
       json: async () => ({ suggestions: [] }),
@@ -85,13 +85,8 @@ describe("Google Places transformation", () => {
     const fetcher = fetcherMock as unknown as typeof fetch;
 
     await searchGooglePlaces({
-      input: "ARIA",
+      input: "ARIA Las Vegas",
       sessionToken: "session_token_123",
-      context: {
-        city: "Las Vegas",
-        latitude: 44.0805,
-        longitude: -103.231,
-      },
       fetcher,
     });
 
@@ -100,7 +95,7 @@ describe("Google Places transformation", () => {
     expect(request).not.toHaveProperty("locationBias");
   });
 
-  it("uses browser location as bias only when no city is entered", async () => {
+  it("uses browser location as optional bias when coordinates are provided", async () => {
     const fetcherMock = vi.fn(async () => ({
       ok: true,
       json: async () => ({ suggestions: [] }),
@@ -111,7 +106,6 @@ describe("Google Places transformation", () => {
       input: "starbucks",
       sessionToken: "session_token_123",
       context: {
-        city: "",
         latitude: 44.0805,
         longitude: -103.231,
       },
@@ -139,7 +133,7 @@ describe("Google Places transformation", () => {
     expect(request.locationBias?.circle?.radius).toBe(50000);
   });
 
-  it("supports unbiased remote search when no city or browser location is available", async () => {
+  it("supports unbiased remote search when browser location is not provided", async () => {
     const fetcherMock = vi.fn(async () => ({
       ok: true,
       json: async () => ({ suggestions: [] }),
