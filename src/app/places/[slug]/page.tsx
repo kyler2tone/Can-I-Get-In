@@ -45,6 +45,10 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               </span>
               <span className="text-sm text-muted">Last updated: {place.lastVerifiedAt}</span>
             </div>
+            <ButtonLink className="mt-5 w-full lg:hidden" href={`/places/${slug}/contribute`}>
+              <Camera size={18} aria-hidden="true" />
+              Contribute photos
+            </ButtonLink>
             <section className="mt-8 border border-line bg-surface p-5">
               <h2 className="text-xl font-semibold">Current summary</h2>
               <p className="mt-3 leading-7 text-muted">{place.currentSummary}</p>
@@ -66,7 +70,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
                 ))}
               </div>
             </section>
-            <PhotoGallery photos={photos} />
+            <PhotoGallery photos={photos} placeSlug={slug} />
           </article>
           <aside className="space-y-5">
             <div className="border border-line bg-surface p-5">

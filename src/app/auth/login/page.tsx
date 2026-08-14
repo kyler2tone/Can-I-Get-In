@@ -5,10 +5,17 @@ export const metadata = {
   title: "Log In",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const safeNext = next && next.startsWith("/") && !next.startsWith("//") ? next : undefined;
+
   return (
     <PageShell>
-      <LoginForm />
+      <LoginForm next={safeNext} />
     </PageShell>
   );
 }

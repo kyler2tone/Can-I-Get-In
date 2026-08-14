@@ -5,6 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { PhotoUploader } from "@/components/contributions/photo-uploader";
 import { requireCompletedProfile } from "@/lib/auth";
 import { getManageablePlacePhotos, getPlacePageData } from "@/lib/places";
+import { isPhotoCategory } from "@/lib/photo-categories";
 
 export const metadata = {
   title: "Contribute Photos",
@@ -12,11 +13,18 @@ export const metadata = {
 
 export default async function PlaceContributePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ category?: string }>;
 }) {
   const { slug } = await params;
-  const { user } = await requireCompletedProfile(`/places/${slug}/contribute`);
+  const { category } = await searchParams;
+  const initialCategory = category && isPhotoCategory(category) ? category : undefined;
+  const contributionPath = initialCategory
+    ? `/places/${slug}/contribute?category=${encodeURIComponent(initialCategory)}`
+    : `/places/${slug}/contribute`;
+  const { user } = await requireCompletedProfile(contributionPath);
   const place = await getPlacePageData(slug);
 
   if (!place) notFound();
@@ -51,6 +59,7 @@ export default async function PlaceContributePage({
         <div className="mt-8">
           <PhotoUploader
             existingPhotos={photos}
+            initialCategory={initialCategory}
             placeId={place.id}
             placeSlug={slug}
             userId={user.id}

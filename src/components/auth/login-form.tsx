@@ -13,7 +13,7 @@ import { PasswordField } from "@/components/auth/password-field";
 
 const initialState: ActionState = { status: "idle", message: "" };
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [passwordState, passwordAction, passwordPending] = useActionState(
     loginAction,
     initialState,
@@ -31,11 +31,13 @@ export function LoginForm() {
           <p className="mt-2 text-sm text-muted">Access your Contributor dashboard.</p>
         </div>
         <form action={signInWithGoogleAction}>
+          <input name="next" type="hidden" value={next ?? ""} />
           <Button className="w-full" type="submit" variant="secondary">
             Continue with Google
           </Button>
         </form>
         <form action={passwordAction} className="space-y-4">
+          <input name="next" type="hidden" value={next ?? ""} />
           <label className="block text-sm font-medium">
             Email
             <input
@@ -53,6 +55,7 @@ export function LoginForm() {
           </Button>
         </form>
         <form action={magicAction} className="space-y-4 border-t border-line pt-5">
+          <input name="next" type="hidden" value={next ?? ""} />
           <label className="block text-sm font-medium">
             Email me a sign-in link
             <input

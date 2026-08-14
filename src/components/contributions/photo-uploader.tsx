@@ -32,6 +32,7 @@ type PhotoUploaderProps = {
   placeSlug: string;
   userId: string;
   existingPhotos: PlacePhoto[];
+  initialCategory?: PhotoCategory;
 };
 
 const compressionMaxDimension = 2200;
@@ -42,9 +43,10 @@ export function PhotoUploader({
   placeSlug,
   userId,
   existingPhotos,
+  initialCategory = "entrance_overview",
 }: PhotoUploaderProps) {
   const [queuedPhotos, setQueuedPhotos] = useState<QueuedPhoto[]>([]);
-  const [category, setCategory] = useState<PhotoCategory>("entrance_overview");
+  const [category, setCategory] = useState<PhotoCategory>(initialCategory);
   const [notice, setNotice] = useState("");
   const [busyPhotoId, setBusyPhotoId] = useState<string | null>(null);
   const pickerRef = useRef<HTMLInputElement | null>(null);

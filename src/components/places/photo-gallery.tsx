@@ -1,8 +1,15 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Camera } from "lucide-react";
 import { groupPhotosByCategory, type PlacePhoto } from "@/lib/places";
 
-export function PhotoGallery({ photos }: { photos: PlacePhoto[] }) {
+export function PhotoGallery({
+  photos,
+  placeSlug,
+}: {
+  photos: PlacePhoto[];
+  placeSlug: string;
+}) {
   const groups = groupPhotosByCategory(photos);
 
   return (
@@ -42,10 +49,16 @@ export function PhotoGallery({ photos }: { photos: PlacePhoto[] }) {
                 ))}
               </div>
             ) : (
-              <div className="mt-4 flex items-center gap-3 rounded-md border border-dashed border-line bg-background p-4 text-sm text-muted">
-                <Camera size={18} aria-hidden="true" />
-                No photos yet. A Contributor can help complete this category.
-              </div>
+              <Link
+                className="mt-4 flex min-h-16 items-center justify-between gap-3 rounded-md border border-dashed border-line bg-background p-4 text-sm text-muted transition hover:border-brand hover:bg-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand"
+                href={`/places/${placeSlug}/contribute?category=${group.value}`}
+              >
+                <span className="flex items-center gap-3">
+                  <Camera size={18} aria-hidden="true" />
+                  <span>No photos yet. A Contributor can help complete this category.</span>
+                </span>
+                <span className="shrink-0 whitespace-nowrap font-semibold text-brand-strong">Add a photo</span>
+              </Link>
             )}
           </div>
         ))}

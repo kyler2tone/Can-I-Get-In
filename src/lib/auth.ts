@@ -11,11 +11,17 @@ export async function getCurrentUser() {
   return user;
 }
 
-export async function requireUser() {
+export async function requireUser(next?: string) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/auth/login?message=Please sign in to continue.");
+    const params = new URLSearchParams({ message: "Please sign in to continue." });
+
+    if (next) {
+      params.set("next", next);
+    }
+
+    redirect(`/auth/login?${params.toString()}`);
   }
 
   return user;
@@ -41,7 +47,7 @@ export async function getCurrentProfile() {
 }
 
 export async function requireCompletedProfile(next?: string) {
-  const user = await requireUser();
+  const user = await requireUser(next);
   const profile = await getCurrentProfile();
 
   if (!canContributePhotos(profile)) {

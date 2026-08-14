@@ -15,8 +15,11 @@ export function getAuthCallbackUrl(next = "/dashboard") {
   return `${getSiteUrl()}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 }
 
-export function getAuthExchangeCallbackUrl() {
-  return `${getSiteUrl()}/auth/callback`;
+export function getAuthExchangeCallbackUrl(next?: string) {
+  const safeNext = next ? normalizeCallbackNext(next) : "";
+  const nextParam = safeNext ? `?next=${encodeURIComponent(safeNext)}` : "";
+
+  return `${getSiteUrl()}/auth/callback${nextParam}`;
 }
 
 export function getPasswordRecoveryCallbackUrl() {

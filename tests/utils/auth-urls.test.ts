@@ -17,6 +17,9 @@ describe("auth URL helpers", () => {
 
     expect(getSiteUrl()).toBe("https://canigetin.app");
     expect(getAuthExchangeCallbackUrl()).toBe("https://canigetin.app/auth/callback");
+    expect(getAuthExchangeCallbackUrl("/places/main-street-square/contribute?category=restroom")).toBe(
+      "https://canigetin.app/auth/callback?next=%2Fplaces%2Fmain-street-square%2Fcontribute%3Fcategory%3Drestroom",
+    );
     expect(getAuthCallbackUrl("/onboarding/profile")).toBe(
       "https://canigetin.app/auth/callback?next=%2Fonboarding%2Fprofile",
     );

@@ -13,7 +13,11 @@ import {
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth";
 import { getSupabaseServerClient } from "@/lib/supabase";
-import { getAuthExchangeCallbackUrl, getPasswordRecoveryCallbackUrl } from "@/lib/auth-urls";
+import {
+  getAuthExchangeCallbackUrl,
+  getPasswordRecoveryCallbackUrl,
+  normalizeCallbackNext,
+} from "@/lib/auth-urls";
 import {
   passwordRecoveryIntentCookie,
   passwordRecoveryIntentValue,
@@ -41,6 +45,7 @@ function authErrorMessage(error: { message?: string } | null | undefined) {
 export async function loginAction(_: ActionState, formData: FormData): Promise<ActionState> {
   const email = emailSchema.safeParse(parseFormString(formData, "email"));
   const password = parseFormString(formData, "password");
+  const next = normalizeCallbackNext(parseFormString(formData, "next"));
 
   if (!email.success) return { status: "error", message: email.error.issues[0].message };
 
@@ -54,7 +59,7 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
     return { status: "error", message: error.message };
   }
 
-  redirect("/dashboard");
+  redirect(next);
 }
 
 export async function signupAction(_: ActionState, formData: FormData): Promise<ActionState> {
@@ -284,6 +289,7 @@ export async function sendMagicLinkAction(
   formData: FormData,
 ): Promise<ActionState> {
   const email = emailSchema.safeParse(parseFormString(formData, "email"));
+  const next = normalizeCallbackNext(parseFormString(formData, "next"));
 
   if (!email.success) {
     return { status: "error", message: email.error.issues[0].message };
@@ -293,7 +299,7 @@ export async function sendMagicLinkAction(
   const { error } = await supabase.auth.signInWithOtp({
     email: email.data,
     options: {
-      emailRedirectTo: getAuthExchangeCallbackUrl(),
+      emailRedirectTo: getAuthExchangeCallbackUrl(next),
       shouldCreateUser: false,
     },
   });
@@ -308,12 +314,13 @@ export async function sendMagicLinkAction(
   return { status: "success", message: "If that email can sign in, a link is on the way." };
 }
 
-export async function signInWithGoogleAction() {
+export async function signInWithGoogleAction(formData: FormData) {
+  const next = normalizeCallbackNext(parseFormString(formData, "next"));
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: getAuthExchangeCallbackUrl(),
+      redirectTo: getAuthExchangeCallbackUrl(next),
     },
   });
 
