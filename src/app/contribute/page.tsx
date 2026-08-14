@@ -1,4 +1,4 @@
-import { Camera, ShieldAlert } from "lucide-react";
+import { Camera, MapPinned, ShieldAlert } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
 
@@ -21,12 +21,18 @@ export default function ContributePage() {
           <h1 className="text-3xl font-semibold">Contribute accessibility observations</h1>
           <p className="mt-3 text-lg leading-8 text-muted">
             Contributors help visitors plan ahead by uploading factual, photo-supported
-            information about public places. Phase 1 documents the workflow before uploads go live.
+            information about public places.
           </p>
-          <ButtonLink className="mt-6" href="/auth/signup">
-            <Camera size={18} aria-hidden="true" />
-            Join as a Contributor
-          </ButtonLink>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <ButtonLink href="/places/add">
+              <MapPinned size={18} aria-hidden="true" />
+              Find or add a place
+            </ButtonLink>
+            <ButtonLink href="/auth/signup" variant="secondary">
+              <Camera size={18} aria-hidden="true" />
+              Join as a Contributor
+            </ButtonLink>
+          </div>
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {guidance.map(([level, title, body]) => (

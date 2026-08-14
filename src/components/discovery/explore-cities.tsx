@@ -49,7 +49,7 @@ export function ExploreCities({ cities }: { cities: DiscoveryCity[] }) {
           <p className="mt-2 text-sm leading-6 text-muted">
             City discovery will grow as real places are added and documented by the community.
           </p>
-          <Link className="mt-4 inline-flex font-bold text-brand-strong underline" href="/contribute">
+          <Link className="mt-4 inline-flex font-bold text-brand-strong underline" href="/places/add">
             Start contributing
           </Link>
         </div>

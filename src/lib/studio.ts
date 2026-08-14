@@ -44,6 +44,47 @@ export type StudioPhoto = {
   signedUrl: string | null;
 };
 
+type PendingPlaceRow = {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  category: string | null;
+  source: string;
+  publish_status: string;
+  verification_notes: string | null;
+  submitted_by: string | null;
+  created_at: string;
+};
+
+type PlacePhotoPreviewRow = {
+  id: string;
+  place_id: string;
+  storage_path: string;
+  category: PhotoCategory;
+  moderation_status: string;
+};
+
+export type StudioPlace = {
+  id: string;
+  name: string;
+  slug: string;
+  address: string;
+  category: string;
+  source: string;
+  status: string;
+  verificationNotes: string | null;
+  submittedAt: string;
+  contributorName: string;
+  contributorUsername: string | null;
+  photos: Array<{
+    id: string;
+    categoryLabel: string;
+    status: string;
+    signedUrl: string | null;
+  }>;
+};
+
 export async function getPendingStudioPhotos() {
   const supabase = await getSupabaseServerClient();
   const { data } = await supabase
@@ -55,6 +96,17 @@ export async function getPendingStudioPhotos() {
     .order("created_at", { ascending: true });
 
   return hydrateStudioPhotos((data ?? []) as PhotoRow[]);
+}
+
+export async function getPendingStudioPlaces() {
+  const supabase = await getSupabaseServerClient();
+  const { data } = await supabase
+    .from("places")
+    .select("id, name, slug, address, category, source, publish_status, verification_notes, submitted_by, created_at")
+    .eq("publish_status", "pending_review")
+    .order("created_at", { ascending: true });
+
+  return hydrateStudioPlaces((data ?? []) as PendingPlaceRow[]);
 }
 
 async function hydrateStudioPhotos(photos: PhotoRow[]): Promise<StudioPhoto[]> {
@@ -101,6 +153,70 @@ async function hydrateStudioPhotos(photos: PhotoRow[]): Promise<StudioPhoto[]> {
         reviewedBy: photo.reviewed_by,
         reviewedAt: photo.reviewed_at,
         signedUrl: signed?.signedUrl ?? null,
+      };
+    }),
+  );
+}
+
+async function hydrateStudioPlaces(places: PendingPlaceRow[]): Promise<StudioPlace[]> {
+  if (!places.length) return [];
+
+  const supabase = await getSupabaseServerClient();
+  const placeIds = places.map((place) => place.id);
+  const submitterIds = [
+    ...new Set(places.map((place) => place.submitted_by).filter((id): id is string => Boolean(id))),
+  ];
+
+  const [{ data: profiles }, { data: photos }] = await Promise.all([
+    submitterIds.length
+      ? supabase.from("profiles").select("id, display_name, username").in("id", submitterIds)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("place_photos")
+      .select("id, place_id, storage_path, category, moderation_status")
+      .in("place_id", placeIds),
+  ]);
+
+  const profileById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile as ProfileRow]),
+  );
+  const photosByPlace = new Map<string, PlacePhotoPreviewRow[]>();
+
+  for (const photo of ((photos ?? []) as PlacePhotoPreviewRow[])) {
+    photosByPlace.set(photo.place_id, [...(photosByPlace.get(photo.place_id) ?? []), photo]);
+  }
+
+  return Promise.all(
+    places.map(async (place) => {
+      const profile = place.submitted_by ? profileById.get(place.submitted_by) : null;
+      const placePhotos = await Promise.all(
+        (photosByPlace.get(place.id) ?? []).slice(0, 4).map(async (photo) => {
+          const { data: signed } = await supabase.storage
+            .from("place-photos")
+            .createSignedUrl(objectPathFromDatabasePath(photo.storage_path), 60 * 30);
+
+          return {
+            id: photo.id,
+            categoryLabel: getPhotoCategoryLabel(photo.category),
+            status: photo.moderation_status,
+            signedUrl: signed?.signedUrl ?? null,
+          };
+        }),
+      );
+
+      return {
+        id: place.id,
+        name: place.name,
+        slug: place.slug,
+        address: place.address,
+        category: place.category ?? "Place",
+        source: place.source,
+        status: place.publish_status,
+        verificationNotes: place.verification_notes,
+        submittedAt: place.created_at,
+        contributorName: profile?.display_name ?? profile?.username ?? "Contributor",
+        contributorUsername: profile?.username ?? null,
+        photos: placePhotos,
       };
     }),
   );

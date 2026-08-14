@@ -84,7 +84,7 @@ export function PopularNearYou({ initialPlaces }: { initialPlaces: DiscoveryPlac
             No published places are ready for this view yet. You can help document nearby
             places and build the first real accessibility coverage.
           </p>
-          <Link className="mt-4 inline-flex font-bold text-brand-strong underline" href="/contribute">
+          <Link className="mt-4 inline-flex font-bold text-brand-strong underline" href="/places/add">
             Help put places on the map
           </Link>
         </div>

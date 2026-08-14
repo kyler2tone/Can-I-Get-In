@@ -3,7 +3,7 @@ import { Camera, Flag, MapPinned, Settings, UsersRound } from "lucide-react";
 
 const studioNavItems = [
   { href: "/studio/photos", label: "Photo Moderation", icon: Camera, enabled: true },
-  { href: "/studio/places", label: "Places", icon: MapPinned, enabled: false },
+  { href: "/studio/places", label: "Places", icon: MapPinned, enabled: true },
   { href: "/studio/contributors", label: "Contributors", icon: UsersRound, enabled: false },
   { href: "/studio/reports", label: "Reports", icon: Flag, enabled: false },
   { href: "/studio/settings", label: "Settings", icon: Settings, enabled: false },

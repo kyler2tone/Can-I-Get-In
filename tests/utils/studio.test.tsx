@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { canAccessStudio } from "@/lib/roles";
-import type { StudioPhoto } from "@/lib/studio";
+import type { StudioPhoto, StudioPlace } from "@/lib/studio";
 
 const mocks = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   update: vi.fn(),
   updateEq: vi.fn(),
+  select: vi.fn(),
+  selectEq: vi.fn(),
+  maybeSingle: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -54,6 +57,28 @@ const pendingPhoto: StudioPhoto = {
   signedUrl: "https://example.com/photo.jpg",
 };
 
+const pendingPlace: StudioPlace = {
+  id: "place-1",
+  name: "Manual Trailhead",
+  slug: "manual-trailhead",
+  address: "Trailhead near 1st Street",
+  category: "Park",
+  source: "community_manual",
+  status: "pending_review",
+  verificationNotes: "Contributor could not find a verified listing.",
+  submittedAt: "2026-08-14T12:00:00.000Z",
+  contributorName: "Rapid Helper",
+  contributorUsername: "rapid-helper",
+  photos: [
+    {
+      id: "photo-1",
+      categoryLabel: "Entrance Overview",
+      status: "pending",
+      signedUrl: "https://example.com/photo.jpg",
+    },
+  ],
+};
+
 describe("studio roles", () => {
   it("does not allow contributors to access Studio", () => {
     expect(canAccessStudio("contributor")).toBe(false);
@@ -84,6 +109,30 @@ describe("photo moderation queue", () => {
     render(<PhotoModerationQueue photos={[]} />);
 
     expect(screen.getByText("No photos are awaiting review.")).toBeInTheDocument();
+  });
+});
+
+describe("place review queue", () => {
+  it("renders pending manual places with review actions and submitted photos", async () => {
+    const { PlaceReviewQueue } = await import("@/components/studio/place-review-queue");
+
+    render(<PlaceReviewQueue places={[pendingPlace]} />);
+
+    expect(screen.getByText("Manual Trailhead")).toBeInTheDocument();
+    expect(screen.getByText("Manual submission")).toBeInTheDocument();
+    expect(screen.getByText("Rapid Helper")).toBeInTheDocument();
+    expect(screen.getByText(/Contributor could not find/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save and approve" })).toBeInTheDocument();
+  });
+
+  it("shows a useful empty state for place review", async () => {
+    const { PlaceReviewQueue } = await import("@/components/studio/place-review-queue");
+
+    render(<PlaceReviewQueue places={[]} />);
+
+    expect(screen.getByText("No places are awaiting review.")).toBeInTheDocument();
   });
 });
 
@@ -158,12 +207,18 @@ describe("photo moderation actions", () => {
     mocks.getCurrentProfile.mockReset();
     mocks.update.mockReset();
     mocks.updateEq.mockReset();
+    mocks.select.mockReset();
+    mocks.selectEq.mockReset();
+    mocks.maybeSingle.mockReset();
     mocks.from.mockReset();
     mocks.requireUser.mockResolvedValue({ id: "moderator-1" });
     mocks.getCurrentProfile.mockResolvedValue({ id: "moderator-1", role: "moderator" });
     mocks.update.mockReturnValue({ eq: mocks.updateEq });
     mocks.updateEq.mockResolvedValue({ error: null });
-    mocks.from.mockReturnValue({ update: mocks.update });
+    mocks.select.mockReturnValue({ eq: mocks.selectEq });
+    mocks.selectEq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
+    mocks.maybeSingle.mockResolvedValue({ data: { slug: "manual-trailhead" } });
+    mocks.from.mockReturnValue({ update: mocks.update, select: mocks.select });
   });
 
   it("approves photos and records audit fields", async () => {
@@ -194,6 +249,39 @@ describe("photo moderation actions", () => {
     expect(mocks.update).toHaveBeenCalledWith(
       expect.objectContaining({
         moderation_status: "rejected",
+        reviewed_by: "moderator-1",
+      }),
+    );
+  });
+
+  it("approves pending places and records audit fields", async () => {
+    const formData = new FormData();
+    formData.set("placeId", "place-1");
+
+    const { approvePlaceAction } = await import("@/lib/studio-actions");
+    await approvePlaceAction(formData);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publish_status: "published",
+        reviewed_by: "moderator-1",
+        reviewed_at: expect.any(String),
+      }),
+    );
+    expect(mocks.updateEq).toHaveBeenCalledWith("id", "place-1");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio/places");
+  });
+
+  it("rejects pending places so they remain hidden from public discovery", async () => {
+    const formData = new FormData();
+    formData.set("placeId", "place-1");
+
+    const { rejectPlaceAction } = await import("@/lib/studio-actions");
+    await rejectPlaceAction(formData);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publish_status: "hidden",
         reviewed_by: "moderator-1",
       }),
     );

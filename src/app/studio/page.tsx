@@ -15,10 +15,10 @@ const studioCards = [
   },
   {
     title: "Places",
-    description: "Manage place records and accessibility summaries.",
+    description: "Review manual place submissions before they appear in public discovery.",
     href: "/studio/places",
     icon: MapPinned,
-    enabled: false,
+    enabled: true,
   },
   {
     title: "Contributors",

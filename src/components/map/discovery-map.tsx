@@ -296,9 +296,12 @@ export function DiscoveryMap({
             ))}
           </div>
         ) : (
-          <p className="border border-line bg-surface p-4 text-sm text-muted">
-            No places match this search yet.
-          </p>
+          <div className="border border-line bg-surface p-4">
+            <p className="text-sm text-muted">No places match this search yet.</p>
+            <Link className="mt-3 inline-flex text-sm font-bold text-brand-strong underline" href="/places/add">
+              Add a missing place
+            </Link>
+          </div>
         )}
       </aside>
     </div>
