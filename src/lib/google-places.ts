@@ -1,4 +1,5 @@
 import { googlePlaceIdSchema, googleSessionTokenSchema } from "@/lib/place-identity";
+import { validCoordinates } from "@/lib/discovery";
 
 const autocompleteUrl = "https://places.googleapis.com/v1/places:autocomplete";
 const placeDetailsBaseUrl = "https://places.googleapis.com/v1/places";
@@ -13,7 +14,14 @@ export type GooglePlaceSuggestion = {
   placeId: string;
   primaryText: string;
   secondaryText: string;
+  fullText: string;
   types: string[];
+};
+
+export type GooglePlacesSearchContext = {
+  city?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export type GooglePlaceDetails = {
@@ -58,15 +66,19 @@ type DetailsResponse = {
 export async function searchGooglePlaces({
   input,
   sessionToken,
+  context = {},
   fetcher = fetch,
 }: {
   input: string;
   sessionToken: string;
+  context?: GooglePlacesSearchContext;
   fetcher?: typeof fetch;
 }) {
   const apiKey = getGooglePlacesApiKey();
   const normalizedInput = input.trim();
+  const requestInput = buildAutocompleteInput(normalizedInput, context.city);
   const parsedToken = googleSessionTokenSchema.safeParse(sessionToken);
+  const locationBias = buildLocationBias(context);
 
   if (normalizedInput.length < 2) return [];
   if (!parsedToken.success) throw new Error("Start a new place search and try again.");
@@ -79,10 +91,11 @@ export async function searchGooglePlaces({
       "X-Goog-FieldMask": autocompleteFieldMask,
     },
     body: JSON.stringify({
-      input: normalizedInput,
+      input: requestInput,
       sessionToken: parsedToken.data,
       languageCode: "en",
       regionCode: "us",
+      ...(locationBias ? { locationBias } : {}),
     }),
   });
 
@@ -103,14 +116,18 @@ export async function searchGooglePlaces({
       const prediction = suggestion.placePrediction;
       const placeId = prediction?.placeId;
       if (!placeId) return null;
+      const fullText = prediction.text?.text ?? prediction.structuredFormat?.mainText?.text ?? "Unnamed place";
+      const primaryText = prediction.structuredFormat?.mainText?.text ?? fullText;
 
       return {
         placeId,
-        primaryText:
-          prediction.structuredFormat?.mainText?.text ??
-          prediction.text?.text ??
-          "Unnamed place",
-        secondaryText: prediction.structuredFormat?.secondaryText?.text ?? "",
+        primaryText,
+        secondaryText: usefulSecondaryText({
+          primaryText,
+          structuredSecondaryText: prediction.structuredFormat?.secondaryText?.text ?? "",
+          fullText,
+        }),
+        fullText,
         types: prediction.types ?? [],
       };
     })
@@ -194,6 +211,54 @@ function getGooglePlacesApiKey() {
   }
 
   return apiKey;
+}
+
+function buildAutocompleteInput(input: string, city = "") {
+  const normalizedCity = city.trim();
+  if (!normalizedCity) return input;
+
+  return `${input} ${normalizedCity}`;
+}
+
+function buildLocationBias(context: GooglePlacesSearchContext) {
+  if (context.city?.trim()) return null;
+
+  const latitude = Number(context.latitude);
+  const longitude = Number(context.longitude);
+  if (!validCoordinates({ latitude, longitude })) return null;
+
+  return {
+    circle: {
+      center: {
+        latitude,
+        longitude,
+      },
+      radius: 50000,
+    },
+  };
+}
+
+function usefulSecondaryText({
+  primaryText,
+  structuredSecondaryText,
+  fullText,
+}: {
+  primaryText: string;
+  structuredSecondaryText: string;
+  fullText: string;
+}) {
+  if (structuredSecondaryText.trim()) return structuredSecondaryText.trim();
+
+  const normalizedPrimary = primaryText.trim();
+  const normalizedFullText = fullText.trim();
+  if (
+    normalizedPrimary &&
+    normalizedFullText.toLowerCase().startsWith(normalizedPrimary.toLowerCase())
+  ) {
+    return normalizedFullText.slice(normalizedPrimary.length).replace(/^,\s*/, "").trim();
+  }
+
+  return normalizedFullText === normalizedPrimary ? "" : normalizedFullText;
 }
 
 async function readGooglePlacesError(response: Response) {

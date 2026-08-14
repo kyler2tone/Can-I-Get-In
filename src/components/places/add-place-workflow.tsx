@@ -19,6 +19,7 @@ type GoogleSuggestion = {
   placeId: string;
   primaryText: string;
   secondaryText: string;
+  fullText: string;
 };
 
 type CreateResponse = {
@@ -54,6 +55,10 @@ export function AddPlaceWorkflow() {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [manualState, setManualState] = useState<"idle" | "submitting" | "locating">("idle");
   const [manualMessage, setManualMessage] = useState("");
+  const [searchLocation, setSearchLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [searchLocationState, setSearchLocationState] = useState<
+    "idle" | "loading" | "available" | "unavailable"
+  >("idle");
   const [sessionToken, setSessionToken] = useState(() => crypto.randomUUID());
   const router = useRouter();
 
@@ -102,6 +107,12 @@ export function AddPlaceWorkflow() {
           input: query.trim(),
           sessionToken,
         });
+        if (city.trim()) {
+          params.set("city", city.trim());
+        } else if (searchLocation) {
+          params.set("lat", String(searchLocation.latitude));
+          params.set("lng", String(searchLocation.longitude));
+        }
         const response = await fetch(`/api/places/google?${params.toString()}`);
         const payload = (await response.json()) as { results?: GoogleSuggestion[]; message?: string };
         if (!response.ok) throw new Error(payload.message ?? "Google search failed");
@@ -115,7 +126,7 @@ export function AddPlaceWorkflow() {
     }, 350);
 
     return () => window.clearTimeout(handle);
-  }, [query, canSearchGoogle, sessionToken]);
+  }, [query, city, canSearchGoogle, searchLocation, sessionToken]);
 
   async function addGooglePlace(placeId: string) {
     setSelectedPlaceId(placeId);
@@ -188,6 +199,36 @@ export function AddPlaceWorkflow() {
       () => {
         setManualMessage("Location could not be added. You can enter coordinates manually.");
         setManualState("idle");
+      },
+      { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 10000 },
+    );
+  }
+
+  function useSearchLocation() {
+    if (!("geolocation" in navigator)) {
+      setSearchLocationState("unavailable");
+      setMessage("Your browser does not support location sharing. You can enter a city instead.");
+      return;
+    }
+
+    setSearchLocationState("loading");
+    setMessage("Finding your location for search...");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSearchLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setSearchLocationState("available");
+        setMessage(
+          city.trim()
+            ? "City search is active, so browser location will not change these results."
+            : "Using your location to prefer nearby verified places.",
+        );
+      },
+      () => {
+        setSearchLocationState("unavailable");
+        setMessage("Location could not be added. You can enter a city instead.");
       },
       { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 10000 },
     );
@@ -267,6 +308,20 @@ export function AddPlaceWorkflow() {
           <p className="mt-2 text-sm leading-6 text-muted">
             Choose a real-world result, then we will create the place and send you to photo upload.
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Button
+              disabled={searchLocationState === "loading"}
+              onClick={useSearchLocation}
+              type="button"
+              variant="secondary"
+            >
+              <LocateFixed size={16} aria-hidden="true" />
+              {searchLocationState === "loading" ? "Finding location..." : "Use my location for search"}
+            </Button>
+            <p className="text-xs text-muted">
+              Typed city or location takes priority over browser location.
+            </p>
+          </div>
           <div className="mt-5 grid gap-3" aria-live="polite">
             {googleState === "loading" ? (
               <p className="rounded-md border border-dashed border-line bg-white p-4 text-sm text-muted">

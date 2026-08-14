@@ -63,6 +63,7 @@ describe("Google Places transformation", () => {
       placeId: "places/example",
       primaryText: "Example Cafe",
       secondaryText: "Rapid City, SD",
+      fullText: "Example Cafe",
     });
     expect(fetcher).toHaveBeenCalledWith(
       "https://places.googleapis.com/v1/places:autocomplete",
@@ -74,6 +75,114 @@ describe("Google Places transformation", () => {
         }),
       }),
     );
+  });
+
+  it("uses explicitly entered city text before browser-location bias", async () => {
+    const fetcherMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ suggestions: [] }),
+    }));
+    const fetcher = fetcherMock as unknown as typeof fetch;
+
+    await searchGooglePlaces({
+      input: "ARIA",
+      sessionToken: "session_token_123",
+      context: {
+        city: "Las Vegas",
+        latitude: 44.0805,
+        longitude: -103.231,
+      },
+      fetcher,
+    });
+
+    const request = readRequestBody(fetcherMock) as Record<string, unknown>;
+    expect(request.input).toBe("ARIA Las Vegas");
+    expect(request).not.toHaveProperty("locationBias");
+  });
+
+  it("uses browser location as bias only when no city is entered", async () => {
+    const fetcherMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ suggestions: [] }),
+    }));
+    const fetcher = fetcherMock as unknown as typeof fetch;
+
+    await searchGooglePlaces({
+      input: "starbucks",
+      sessionToken: "session_token_123",
+      context: {
+        city: "",
+        latitude: 44.0805,
+        longitude: -103.231,
+      },
+      fetcher,
+    });
+
+    const request = readRequestBody(fetcherMock) as {
+      input: string;
+      locationBias?: {
+        circle?: {
+          center?: {
+            latitude?: number;
+            longitude?: number;
+          };
+          radius?: number;
+        };
+      };
+    };
+
+    expect(request.input).toBe("starbucks");
+    expect(request.locationBias?.circle?.center).toEqual({
+      latitude: 44.0805,
+      longitude: -103.231,
+    });
+    expect(request.locationBias?.circle?.radius).toBe(50000);
+  });
+
+  it("supports unbiased remote search when no city or browser location is available", async () => {
+    const fetcherMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ suggestions: [] }),
+    }));
+    const fetcher = fetcherMock as unknown as typeof fetch;
+
+    await searchGooglePlaces({
+      input: "starbucks",
+      sessionToken: "session_token_123",
+      fetcher,
+    });
+
+    const request = readRequestBody(fetcherMock) as Record<string, unknown>;
+    expect(request.input).toBe("starbucks");
+    expect(request).not.toHaveProperty("locationBias");
+  });
+
+  it("falls back to full Google result text for useful address labels", async () => {
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        suggestions: [
+          {
+            placePrediction: {
+              placeId: "places/starbucks",
+              text: { text: "Starbucks, 123 Main Street, Rapid City, SD, USA" },
+              structuredFormat: {
+                mainText: { text: "Starbucks" },
+              },
+              types: ["coffee_shop"],
+            },
+          },
+        ],
+      }),
+    })) as unknown as typeof fetch;
+
+    const results = await searchGooglePlaces({
+      input: "starbucks",
+      sessionToken: "session_token_123",
+      fetcher,
+    });
+
+    expect(results[0].secondaryText).toBe("123 Main Street, Rapid City, SD, USA");
   });
 
   it("transforms place details into minimal CIGI place data", () => {
@@ -250,4 +359,9 @@ function queryMock<T>(result: T) {
   query.maybeSingle.mockResolvedValue(result);
 
   return query;
+}
+
+function readRequestBody(fetcherMock: ReturnType<typeof vi.fn>) {
+  const [, init] = fetcherMock.mock.calls[0] as unknown as [string, RequestInit];
+  return JSON.parse(String(init.body));
 }
