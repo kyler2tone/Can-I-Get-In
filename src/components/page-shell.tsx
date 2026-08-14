@@ -72,7 +72,7 @@ export function PageShell({
                 <ul className="mt-3 space-y-2">
                   {group.links.map((link) => (
                     <li key={link.href}>
-                      <Link className="text-white/76 transition hover:text-white" href={link.href}>
+                      <Link className="whitespace-nowrap text-white/76 transition hover:text-white" href={link.href}>
                         {link.label}
                       </Link>
                     </li>

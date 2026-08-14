@@ -71,37 +71,39 @@ export function HomeHero() {
           />
         ))}
 
-        <div className="relative z-10 flex h-full max-w-3xl flex-col justify-end px-5 pb-16 pt-20 sm:px-9 sm:pb-20 lg:px-12">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-white">Can I Get In?</p>
-          <h1 className="mt-3 max-w-2xl text-5xl font-black leading-[0.96] [text-shadow:_0_2px_18px_rgb(0_0_0_/_45%)] sm:text-6xl lg:text-7xl">
+        <div className="relative z-10 flex h-full max-w-3xl flex-col justify-end px-4 pb-8 pt-16 min-[375px]:px-5 sm:px-9 sm:pb-20 lg:px-12">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-white sm:text-sm sm:tracking-[0.18em]">
+            Can I Get In?
+          </p>
+          <h1 className="mt-2 max-w-2xl text-[2.35rem] font-black leading-[0.98] [text-shadow:_0_2px_18px_rgb(0_0_0_/_45%)] min-[375px]:text-[2.65rem] sm:mt-3 sm:text-6xl sm:leading-[0.96] lg:text-7xl">
             Where are you headed?
           </h1>
-          <p className="mt-5 max-w-xl text-lg font-semibold leading-8 text-white [text-shadow:_0_2px_14px_rgb(0_0_0_/_45%)]">
-            Search places and cities with community accessibility notes, photos, and confidence
+          <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-white [text-shadow:_0_2px_14px_rgb(0_0_0_/_45%)] min-[375px]:text-[0.95rem] sm:mt-5 sm:text-lg sm:leading-8">
+            Search places and cities with community photos, accessibility notes, and confidence
             before you go.
           </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:items-center sm:gap-3">
             <form
               action="/map"
-              className="flex min-h-12 overflow-hidden rounded-full bg-white text-foreground shadow-lg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white sm:min-w-[390px]"
+              className="flex min-h-11 overflow-hidden rounded-full bg-white text-foreground shadow-lg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white sm:min-h-12 sm:min-w-[390px]"
             >
               <label className="sr-only" htmlFor="homepage-search">
                 Search places or cities
               </label>
-              <Search className="ml-4 mt-3.5 shrink-0 text-muted" size={18} aria-hidden="true" />
+              <Search className="ml-3 mt-3.5 shrink-0 text-muted sm:ml-4" size={18} aria-hidden="true" />
               <input
-                className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none placeholder:text-muted"
+                className="min-w-0 flex-1 bg-transparent px-2 py-3 text-sm outline-none placeholder:text-muted sm:px-3"
                 id="homepage-search"
                 name="q"
                 placeholder="Search places or cities..."
                 type="search"
               />
-              <button className="m-1 rounded-full bg-brand px-5 text-sm font-bold text-white transition hover:bg-brand-strong">
+              <button className="m-1 whitespace-nowrap rounded-full bg-brand px-4 text-sm font-bold text-white transition hover:bg-brand-strong sm:px-5">
                 Search
               </button>
             </form>
             <Link
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-bold text-brand-strong shadow-lg transition hover:bg-sky-soft focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white"
+              className="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-full bg-white px-5 py-2.5 text-sm font-bold text-brand-strong shadow-lg transition hover:bg-sky-soft focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white sm:min-h-12 sm:py-3"
               href="/map"
             >
               Explore places
@@ -128,7 +130,7 @@ export function HomeHero() {
           </button>
         </div>
 
-        <div className="absolute bottom-5 left-5 z-20 flex items-center gap-2 sm:left-9">
+        <div className="absolute bottom-3 left-5 z-20 flex items-center gap-2 sm:bottom-5 sm:left-9">
           <span className="sr-only">
             Hero image {activeIndex + 1} of {heroImages.length}
           </span>

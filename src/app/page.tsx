@@ -93,7 +93,7 @@ export default function Home() {
             <h2 className="mt-2 text-3xl font-black text-foreground sm:text-4xl">Explore by category</h2>
           </div>
           <Link
-            className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-brand-strong transition hover:bg-sky-soft sm:inline-flex"
+            className="hidden items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold text-brand-strong transition hover:bg-sky-soft sm:inline-flex"
             href="/map"
           >
             View map
@@ -123,9 +123,11 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-3xl font-black text-foreground sm:text-4xl">Popular near you</h2>
+          <h2 className="text-2xl font-black text-foreground min-[375px]:text-3xl sm:text-4xl">
+            Popular near you
+          </h2>
           <Link
-            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-brand-strong transition hover:bg-sky-soft"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-sm font-bold text-brand-strong transition hover:bg-sky-soft min-[375px]:gap-2 min-[375px]:px-3"
             href="/map"
           >
             View all
@@ -208,7 +210,7 @@ export default function Home() {
             ))}
           </div>
           <Link
-            className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-brand px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-strong focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand"
+            className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-brand-strong focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand"
             href="/contribute"
           >
             Contribute now
@@ -221,10 +223,12 @@ export default function Home() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">Destinations</p>
-            <h2 className="mt-2 text-3xl font-black text-foreground sm:text-4xl">Explore cities</h2>
+            <h2 className="mt-2 text-2xl font-black text-foreground min-[375px]:text-3xl sm:text-4xl">
+              Explore cities
+            </h2>
           </div>
           <Link
-            className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-brand-strong transition hover:bg-sky-soft"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-sm font-bold text-brand-strong transition hover:bg-sky-soft min-[375px]:gap-2 min-[375px]:px-3"
             href="/map"
           >
             View all cities

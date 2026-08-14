@@ -32,7 +32,7 @@ export async function SiteHeader({ sticky = true }: { sticky?: boolean }) {
         <div className="hidden items-center gap-1 md:flex">
           {primaryLinks.map((link) => (
             <Link
-              className="rounded-full px-3 py-2 text-sm font-bold text-foreground/78 transition hover:bg-sky-soft hover:text-brand-strong"
+              className="whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold text-foreground/78 transition hover:bg-sky-soft hover:text-brand-strong"
               href={link.href}
               key={link.label}
             >
@@ -107,14 +107,14 @@ export async function SiteHeader({ sticky = true }: { sticky?: boolean }) {
           ) : (
             <>
               <Link
-                className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-foreground/78 transition hover:bg-sky-soft hover:text-brand-strong sm:inline-flex"
+                className="hidden items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold text-foreground/78 transition hover:bg-sky-soft hover:text-brand-strong sm:inline-flex"
                 href="/auth/login"
               >
                 <UserRound size={16} aria-hidden="true" />
                 Sign in
               </Link>
               <Link
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-strong"
+                className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-brand-strong"
                 href="/auth/signup"
               >
                 <MapPinned size={16} aria-hidden="true" className="inline sm:hidden" />
