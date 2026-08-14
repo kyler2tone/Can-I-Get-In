@@ -4,13 +4,13 @@ import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
 import { PhotoGallery } from "@/components/places/photo-gallery";
-import { formatEntryOutcome, samplePlaces } from "@/lib/sample-data";
+import { formatEntryOutcome } from "@/lib/entry-outcomes";
 import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
 import type { EntryOutcome } from "@/lib/types";
 
 export function generateStaticParams() {
-  return samplePlaces.map((place) => ({ slug: place.slug }));
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -58,17 +58,23 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             </section>
             <section className="mt-5 border border-line bg-surface p-5">
               <h2 className="text-xl font-semibold">Factual observations</h2>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {place.observations.map((observation) => (
-                  <div className="border border-line bg-white p-4" key={observation.label}>
-                    <h3 className="font-semibold">{observation.label}</h3>
-                    <p className="mt-1 text-sm text-muted">{observation.value}</p>
-                    <p className="mt-2 text-xs text-muted">
-                      {observation.confidence} confidence · {observation.source}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              {place.observations.length ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {place.observations.map((observation) => (
+                    <div className="border border-line bg-white p-4" key={observation.label}>
+                      <h3 className="font-semibold">{observation.label}</h3>
+                      <p className="mt-1 text-sm text-muted">{observation.value}</p>
+                      <p className="mt-2 text-xs text-muted">
+                        {observation.confidence} confidence · {observation.source}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted">
+                  No factual observations have been published for this place yet.
+                </p>
+              )}
             </section>
             <PhotoGallery photos={photos} placeSlug={slug} />
           </article>
@@ -87,11 +93,17 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             </div>
             <div className="border border-line bg-surface p-5">
               <h2 className="text-lg font-semibold">Missing information</h2>
-              <ul className="mt-3 space-y-2 text-sm text-muted">
-                {place.missingInformation.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+              {place.missingInformation.length ? (
+                <ul className="mt-3 space-y-2 text-sm text-muted">
+                  {place.missingInformation.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 text-sm text-muted">
+                  Contributors can add photos to fill in the details visitors need.
+                </p>
+              )}
             </div>
             <div className="grid gap-3">
               <ButtonLink href="/contribute" variant="secondary">

@@ -1,7 +1,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { objectPathFromDatabasePath } from "@/lib/photo-upload";
 import { photoCategories, type PhotoCategory } from "@/lib/photo-categories";
-import { getPlaceBySlug } from "@/lib/sample-data";
+import type { Observation } from "@/lib/types";
 
 export type DatabasePlace = {
   id: string;
@@ -46,33 +46,29 @@ export async function getDatabasePlaceBySlug(slug: string) {
 
 export async function getPlacePageData(slug: string) {
   const databasePlace = await getDatabasePlaceBySlug(slug);
-  const samplePlace = getPlaceBySlug(slug);
 
-  if (!databasePlace && !samplePlace) {
+  if (!databasePlace) {
     return null;
   }
 
   return {
     databasePlace,
-    samplePlace,
-    id: databasePlace?.id ?? null,
+    samplePlace: null,
+    id: databasePlace.id,
     slug,
-    name: databasePlace?.name ?? samplePlace!.name,
-    address: databasePlace?.address ?? samplePlace!.address,
-    category: databasePlace?.category ?? samplePlace!.category,
-    latitude: Number(databasePlace?.latitude ?? samplePlace!.latitude),
-    longitude: Number(databasePlace?.longitude ?? samplePlace!.longitude),
-    currentEntryStatus:
-      databasePlace?.current_entry_status ?? samplePlace!.currentEntryStatus,
-    currentSummary: databasePlace?.current_summary ?? samplePlace!.currentSummary,
-    communityConfidence:
-      databasePlace?.community_confidence === undefined
-        ? samplePlace!.communityConfidence
-        : `${Math.round(databasePlace.community_confidence * 100)}%`,
-    lastVerifiedAt:
-      databasePlace?.last_verified_at?.slice(0, 10) ?? samplePlace!.lastVerifiedAt,
-    observations: samplePlace?.observations ?? [],
-    missingInformation: samplePlace?.missingInformation ?? [],
+    name: databasePlace.name,
+    address: databasePlace.address,
+    category: databasePlace.category ?? "Place",
+    latitude: Number(databasePlace.latitude),
+    longitude: Number(databasePlace.longitude),
+    currentEntryStatus: databasePlace.current_entry_status,
+    currentSummary:
+      databasePlace.current_summary ??
+      "Community details are still being gathered for this place.",
+    communityConfidence: `${Math.round(databasePlace.community_confidence * 100)}%`,
+    lastVerifiedAt: databasePlace.last_verified_at?.slice(0, 10) ?? "Not yet verified",
+    observations: [] as Observation[],
+    missingInformation: [] as string[],
   };
 }
 

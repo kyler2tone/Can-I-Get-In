@@ -1,4 +1,4 @@
-import { formatEntryOutcome } from "@/lib/sample-data";
+import { formatEntryOutcome } from "@/lib/entry-outcomes";
 import type { EntryOutcome } from "@/lib/types";
 
 const classes: Record<EntryOutcome, string> = {
