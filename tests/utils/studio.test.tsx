@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   select: vi.fn(),
   selectEq: vi.fn(),
   maybeSingle: vi.fn(),
+  analyzePlaceAccessibility: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -38,6 +39,10 @@ vi.mock("@/lib/supabase", () => ({
       })),
     },
   })),
+}));
+
+vi.mock("@/lib/openai-accessibility", () => ({
+  analyzePlaceAccessibility: mocks.analyzePlaceAccessibility,
 }));
 
 const pendingPhoto: StudioPhoto = {
@@ -77,6 +82,19 @@ const pendingPlace: StudioPlace = {
       signedUrl: "https://example.com/photo.jpg",
     },
   ],
+};
+
+const pendingUpdate = {
+  id: "update-1",
+  placeId: "place-1",
+  placeName: "Main Street Cafe",
+  placeSlug: "main-street-cafe",
+  factors: ["step_free_entrance"],
+  suggestedStatus: "unknown",
+  explanation: "The doorway photo looks outdated.",
+  submittedAt: "2026-08-18T12:00:00.000Z",
+  contributorName: "Rapid Helper",
+  contributorUsername: "rapid-helper",
 };
 
 describe("studio roles", () => {
@@ -133,6 +151,28 @@ describe("place review queue", () => {
     render(<PlaceReviewQueue places={[]} />);
 
     expect(screen.getByText("No places are awaiting review.")).toBeInTheDocument();
+  });
+});
+
+describe("suggested update queue", () => {
+  it("renders pending suggested updates with review actions", async () => {
+    const { UpdateRequestQueue } = await import("@/components/studio/update-request-queue");
+
+    render(<UpdateRequestQueue updates={[pendingUpdate]} />);
+
+    expect(screen.getByText("Main Street Cafe")).toBeInTheDocument();
+    expect(screen.getByText("Step-free entrance")).toBeInTheDocument();
+    expect(screen.getByText("The doorway photo looks outdated.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accept" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reject" })).toBeInTheDocument();
+  });
+
+  it("shows a useful empty state for suggested updates", async () => {
+    const { UpdateRequestQueue } = await import("@/components/studio/update-request-queue");
+
+    render(<UpdateRequestQueue updates={[]} />);
+
+    expect(screen.getByText("No suggested updates are awaiting review.")).toBeInTheDocument();
   });
 });
 
@@ -210,6 +250,7 @@ describe("photo moderation actions", () => {
     mocks.select.mockReset();
     mocks.selectEq.mockReset();
     mocks.maybeSingle.mockReset();
+    mocks.analyzePlaceAccessibility.mockReset();
     mocks.from.mockReset();
     mocks.requireUser.mockResolvedValue({ id: "moderator-1" });
     mocks.getCurrentProfile.mockResolvedValue({ id: "moderator-1", role: "moderator" });
@@ -218,6 +259,7 @@ describe("photo moderation actions", () => {
     mocks.select.mockReturnValue({ eq: mocks.selectEq });
     mocks.selectEq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
     mocks.maybeSingle.mockResolvedValue({ data: { slug: "manual-trailhead" } });
+    mocks.analyzePlaceAccessibility.mockResolvedValue({ status: "completed" });
     mocks.from.mockReturnValue({ update: mocks.update, select: mocks.select });
   });
 
@@ -285,6 +327,42 @@ describe("photo moderation actions", () => {
         reviewed_by: "moderator-1",
       }),
     );
+  });
+
+  it("accepts suggested updates and triggers re-analysis", async () => {
+    const formData = new FormData();
+    formData.set("updateId", "update-1");
+    mocks.maybeSingle.mockResolvedValueOnce({ data: { place_id: "place-1" } });
+
+    const { acceptUpdateRequestAction } = await import("@/lib/studio-actions");
+    await acceptUpdateRequestAction(formData);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "accepted",
+        reviewed_by: "moderator-1",
+        reviewed_at: expect.any(String),
+      }),
+    );
+    expect(mocks.analyzePlaceAccessibility).toHaveBeenCalledWith("place-1");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio/updates");
+  });
+
+  it("rejects suggested updates without changing public observations", async () => {
+    const formData = new FormData();
+    formData.set("updateId", "update-1");
+    mocks.maybeSingle.mockResolvedValueOnce({ data: { place_id: "place-1" } });
+
+    const { rejectUpdateRequestAction } = await import("@/lib/studio-actions");
+    await rejectUpdateRequestAction(formData);
+
+    expect(mocks.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "rejected",
+        reviewed_by: "moderator-1",
+      }),
+    );
+    expect(mocks.analyzePlaceAccessibility).not.toHaveBeenCalled();
   });
 });
 

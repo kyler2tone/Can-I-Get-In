@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
-import { Camera, Flag, RefreshCw } from "lucide-react";
+import { Camera, RefreshCw } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { AccessibilityGlance } from "@/components/places/accessibility-glance";
 import { PhotoGallery } from "@/components/places/photo-gallery";
+import { SuggestUpdateForm } from "@/components/places/suggest-update-form";
 import { formatEntryOutcome } from "@/lib/entry-outcomes";
+import { getPublicAccessibilityIntelligence } from "@/lib/accessibility";
 import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
 import type { EntryOutcome } from "@/lib/types";
@@ -24,6 +27,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
   if (!place) notFound();
 
   const photos = await getApprovedPlacePhotos(place.id);
+  const accessibility = await getPublicAccessibilityIntelligence(place.id);
   const currentEntryStatus = place.currentEntryStatus as EntryOutcome;
 
   return (
@@ -47,6 +51,10 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               <Camera size={18} aria-hidden="true" />
               Contribute photos
             </ButtonLink>
+            <AccessibilityGlance
+              observations={accessibility.observations}
+              summary={accessibility.publicSummary}
+            />
             <section className="mt-8 border border-line bg-surface p-5">
               <h2 className="text-xl font-semibold">Current summary</h2>
               <p className="mt-3 leading-7 text-muted">{place.currentSummary}</p>
@@ -108,11 +116,8 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
                 <RefreshCw size={18} aria-hidden="true" />
                 Request an update
               </ButtonLink>
-              <ButtonLink href="/contribute" variant="ghost">
-                <Flag size={18} aria-hidden="true" />
-                Flag a concern
-              </ButtonLink>
             </div>
+            <SuggestUpdateForm placeId={place.id} />
           </aside>
         </div>
       </section>

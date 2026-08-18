@@ -85,6 +85,30 @@ export type StudioPlace = {
   }>;
 };
 
+type UpdateRequestRow = {
+  id: string;
+  place_id: string;
+  contributor_id: string | null;
+  factors: string[];
+  suggested_status: "yes" | "no" | "unknown" | null;
+  explanation: string;
+  status: "pending" | "accepted" | "rejected";
+  created_at: string;
+};
+
+export type StudioUpdateRequest = {
+  id: string;
+  placeId: string;
+  placeName: string;
+  placeSlug: string;
+  factors: string[];
+  suggestedStatus: string;
+  explanation: string;
+  submittedAt: string;
+  contributorName: string;
+  contributorUsername: string | null;
+};
+
 export async function getPendingStudioPhotos() {
   const supabase = await getSupabaseServerClient();
   const { data } = await supabase
@@ -107,6 +131,17 @@ export async function getPendingStudioPlaces() {
     .order("created_at", { ascending: true });
 
   return hydrateStudioPlaces((data ?? []) as PendingPlaceRow[]);
+}
+
+export async function getPendingStudioUpdateRequests() {
+  const supabase = await getSupabaseServerClient();
+  const { data } = await supabase
+    .from("place_update_requests")
+    .select("id, place_id, contributor_id, factors, suggested_status, explanation, status, created_at")
+    .eq("status", "pending")
+    .order("created_at", { ascending: true });
+
+  return hydrateStudioUpdateRequests((data ?? []) as UpdateRequestRow[]);
 }
 
 async function hydrateStudioPhotos(photos: PhotoRow[]): Promise<StudioPhoto[]> {
@@ -156,6 +191,50 @@ async function hydrateStudioPhotos(photos: PhotoRow[]): Promise<StudioPhoto[]> {
       };
     }),
   );
+}
+
+async function hydrateStudioUpdateRequests(
+  updates: UpdateRequestRow[],
+): Promise<StudioUpdateRequest[]> {
+  if (!updates.length) return [];
+
+  const supabase = await getSupabaseServerClient();
+  const placeIds = [...new Set(updates.map((update) => update.place_id))];
+  const contributorIds = [
+    ...new Set(updates.map((update) => update.contributor_id).filter((id): id is string => Boolean(id))),
+  ];
+
+  const [{ data: places }, { data: profiles }] = await Promise.all([
+    supabase.from("places").select("id, name, slug").in("id", placeIds),
+    contributorIds.length
+      ? supabase.from("profiles").select("id, display_name, username").in("id", contributorIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const placeById = new Map(
+    ((places ?? []) as Array<{ id: string; name: string; slug: string }>).map((place) => [place.id, place]),
+  );
+  const profileById = new Map(
+    (profiles ?? []).map((profile) => [profile.id, profile as ProfileRow]),
+  );
+
+  return updates.map((update) => {
+    const place = placeById.get(update.place_id);
+    const profile = update.contributor_id ? profileById.get(update.contributor_id) : null;
+
+    return {
+      id: update.id,
+      placeId: update.place_id,
+      placeName: place?.name ?? "Unknown place",
+      placeSlug: place?.slug ?? "",
+      factors: update.factors,
+      suggestedStatus: update.suggested_status ?? "No specific status",
+      explanation: update.explanation,
+      submittedAt: update.created_at,
+      contributorName: profile?.display_name ?? profile?.username ?? "Contributor",
+      contributorUsername: profile?.username ?? null,
+    };
+  });
 }
 
 async function hydrateStudioPlaces(places: PendingPlaceRow[]): Promise<StudioPlace[]> {

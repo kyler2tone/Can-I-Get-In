@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireStudioAccess } from "@/lib/roles";
 import { getSupabaseServerClient } from "@/lib/supabase";
+import { analyzePlaceAccessibility } from "@/lib/openai-accessibility";
 
 export async function approvePhotoAction(formData: FormData) {
   await reviewPhoto(formData, "approved");
@@ -63,6 +64,14 @@ export async function correctAndApprovePlaceAction(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function acceptUpdateRequestAction(formData: FormData) {
+  await reviewUpdateRequest(formData, "accepted");
+}
+
+export async function rejectUpdateRequestAction(formData: FormData) {
+  await reviewUpdateRequest(formData, "rejected");
+}
+
 async function reviewPhoto(formData: FormData, status: "approved" | "rejected") {
   const profile = await requireStudioAccess();
   const photoId = formData.get("photoId");
@@ -72,6 +81,11 @@ async function reviewPhoto(formData: FormData, status: "approved" | "rejected") 
   }
 
   const supabase = await getSupabaseServerClient();
+  const { data: photo } = await supabase
+    .from("place_photos")
+    .select("place_id")
+    .eq("id", photoId)
+    .maybeSingle();
   const { error } = await supabase
     .from("place_photos")
     .update({
@@ -86,6 +100,23 @@ async function reviewPhoto(formData: FormData, status: "approved" | "rejected") 
   }
 
   revalidatePath("/studio/photos");
+
+  if (status === "approved" && photo?.place_id) {
+    try {
+      const result = await analyzePlaceAccessibility(photo.place_id);
+      if (result.status === "failed") {
+        console.warn("[accessibility-analysis]", {
+          placeId: photo.place_id,
+          status: result.status,
+        });
+      }
+    } catch {
+      console.warn("[accessibility-analysis]", {
+        placeId: photo.place_id,
+        status: "failed",
+      });
+    }
+  }
 }
 
 async function reviewPlace(formData: FormData, status: "published" | "hidden") {
@@ -125,4 +156,45 @@ async function reviewPlace(formData: FormData, status: "published" | "hidden") {
   if (place?.slug) {
     revalidatePath(`/places/${place.slug}`);
   }
+}
+
+async function reviewUpdateRequest(formData: FormData, status: "accepted" | "rejected") {
+  const profile = await requireStudioAccess();
+  const updateId = formData.get("updateId");
+
+  if (typeof updateId !== "string" || !updateId) {
+    throw new Error("Choose an update request to review.");
+  }
+
+  const supabase = await getSupabaseServerClient();
+  const { data: update } = await supabase
+    .from("place_update_requests")
+    .select("place_id")
+    .eq("id", updateId)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("place_update_requests")
+    .update({
+      status,
+      reviewed_by: profile.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", updateId);
+
+  if (error) {
+    throw new Error("Suggested update review could not be saved.");
+  }
+
+  if (status === "accepted" && update?.place_id) {
+    try {
+      await analyzePlaceAccessibility(update.place_id);
+    } catch {
+      console.warn("[accessibility-analysis]", {
+        placeId: update.place_id,
+        status: "failed",
+      });
+    }
+  }
+
+  revalidatePath("/studio/updates");
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera, Flag, MapPinned, Settings, UsersRound } from "lucide-react";
+import { Camera, Flag, MapPinned, MessageSquareWarning, Settings, UsersRound } from "lucide-react";
 
 export const metadata = {
   title: "Studio",
@@ -18,6 +18,13 @@ const studioCards = [
     description: "Review manual place submissions before they appear in public discovery.",
     href: "/studio/places",
     icon: MapPinned,
+    enabled: true,
+  },
+  {
+    title: "Suggested Updates",
+    description: "Review Contributor corrections for published accessibility information.",
+    href: "/studio/updates",
+    icon: MessageSquareWarning,
     enabled: true,
   },
   {

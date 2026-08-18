@@ -98,13 +98,6 @@ export async function searchGooglePlaces({
   });
 
   if (!response.ok) {
-    console.warn("[google-places-autocomplete]", {
-      upstreamStatus: response.status,
-      ...(await readGooglePlacesError(response)),
-      hasApiKeyHeader: Boolean(apiKey),
-      hasJsonContentTypeHeader: true,
-      hasSessionToken: Boolean(parsedToken.data),
-    });
     throw new Error("Place search is unavailable right now.");
   }
 
@@ -248,30 +241,6 @@ function usefulSecondaryText({
   }
 
   return normalizedFullText === normalizedPrimary ? "" : normalizedFullText;
-}
-
-async function readGooglePlacesError(response: Response) {
-  try {
-    const payload = (await response.clone().json()) as {
-      error?: {
-        status?: string;
-        code?: number;
-        message?: string;
-      };
-    };
-
-    return {
-      googleErrorStatus: payload.error?.status ?? null,
-      googleErrorCode: payload.error?.code ?? null,
-      googleErrorMessage: payload.error?.message ?? null,
-    };
-  } catch {
-    return {
-      googleErrorStatus: null,
-      googleErrorCode: null,
-      googleErrorMessage: null,
-    };
-  }
 }
 
 function findAddressComponent(

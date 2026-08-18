@@ -15,6 +15,7 @@ import {
 } from "@/lib/photo-upload";
 import { photoCategories, type PhotoCategory } from "@/lib/photo-categories";
 import type { PlacePhoto } from "@/lib/places";
+import { accessibilityFactors, type AccessibilityFactorKey } from "@/lib/accessibility-factors";
 
 type QueuedPhoto = {
   id: string;
@@ -26,6 +27,16 @@ type QueuedPhoto = {
   status: "ready" | "compressing" | "uploading" | "saving" | "done" | "error";
   message: string;
 };
+
+type ContributorObservationValue =
+  | ""
+  | "yes"
+  | "no"
+  | "not_sure"
+  | "did_not_need"
+  | "comfortable_for_me"
+  | "difficult_for_me"
+  | "assistance_needed";
 
 type PhotoUploaderProps = {
   placeId: string;
@@ -49,6 +60,10 @@ export function PhotoUploader({
   const [category, setCategory] = useState<PhotoCategory>(initialCategory);
   const [notice, setNotice] = useState("");
   const [busyPhotoId, setBusyPhotoId] = useState<string | null>(null);
+  const [accessibilityNotes, setAccessibilityNotes] = useState("");
+  const [contributorObservations, setContributorObservations] = useState<
+    Partial<Record<AccessibilityFactorKey, ContributorObservationValue>>
+  >({});
   const pickerRef = useRef<HTMLInputElement | null>(null);
   const cameraRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
@@ -105,6 +120,8 @@ export function PhotoUploader({
       return;
     }
 
+    const uploadedPhotoIds: string[] = [];
+
     for (const photo of queuedPhotos) {
       if (photo.status !== "ready") continue;
 
@@ -122,17 +139,25 @@ export function PhotoUploader({
 
         setQueuedPhoto(photo.id, { status: "saving", message: "Saving photo record..." });
 
-        const { error } = await supabase.from("place_photos").insert({
-          place_id: placeId,
-          uploader_id: userId,
-          storage_path: paths.databasePath,
-          category: photo.category,
-          moderation_status: "pending",
-        });
+        const { data: insertedPhoto, error } = await supabase
+          .from("place_photos")
+          .insert({
+            place_id: placeId,
+            uploader_id: userId,
+            storage_path: paths.databasePath,
+            category: photo.category,
+            moderation_status: "pending",
+          })
+          .select("id")
+          .single();
 
         if (error) {
           await supabase.storage.from("place-photos").remove([paths.objectPath]);
           throw error;
+        }
+
+        if (insertedPhoto?.id) {
+          uploadedPhotoIds.push(insertedPhoto.id);
         }
 
         setQueuedPhoto(photo.id, {
@@ -146,6 +171,16 @@ export function PhotoUploader({
           message: error instanceof Error ? error.message : "Upload failed.",
         });
       }
+    }
+
+    if (uploadedPhotoIds.length && hasContributorEvidence(contributorObservations, accessibilityNotes)) {
+      await supabase.from("contributor_place_observations").insert({
+        place_id: placeId,
+        contributor_id: userId,
+        photo_ids: uploadedPhotoIds,
+        observations: cleanContributorObservations(contributorObservations),
+        notes: accessibilityNotes.trim() || null,
+      });
     }
 
     router.push(`/places/${placeSlug}`);
@@ -316,6 +351,54 @@ export function PhotoUploader({
         </div>
       </section>
 
+      <section className="border border-line bg-surface p-5">
+        <h2 className="text-xl font-semibold">Accessibility observations</h2>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          Optional details can help summarize what the photos document. Choose “Not sure”
+          whenever something is unclear.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {accessibilityFactors.map((factor) => (
+            <label className="block text-sm font-medium" key={factor.key}>
+              {factor.label}
+              <select
+                className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
+                onChange={(event) =>
+                  setContributorObservations((current) => ({
+                    ...current,
+                    [factor.key]: event.target.value as ContributorObservationValue,
+                  }))
+                }
+                value={contributorObservations[factor.key] ?? ""}
+              >
+                <option value="">No observation</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+                <option value="not_sure">Not sure</option>
+                {factor.key === "ramp_present" ? (
+                  <>
+                    <option value="did_not_need">Did not need ramp</option>
+                    <option value="comfortable_for_me">Ramp was comfortable for me</option>
+                    <option value="difficult_for_me">Ramp was difficult for me</option>
+                    <option value="assistance_needed">Assistance was needed</option>
+                  </>
+                ) : null}
+              </select>
+            </label>
+          ))}
+        </div>
+        <label className="mt-5 block text-sm font-medium">
+          Accessibility notes <span className="font-normal text-muted">(optional)</span>
+          <textarea
+            className="mt-1 min-h-28 w-full rounded-md border border-line bg-white px-3 py-2"
+            maxLength={500}
+            onChange={(event) => setAccessibilityNotes(event.target.value)}
+            placeholder="Share anything you noticed about getting into or moving through this place."
+            value={accessibilityNotes}
+          />
+        </label>
+      </section>
+
       {queuedPhotos.length ? (
         <section className="border border-line bg-surface p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -439,6 +522,21 @@ export function PhotoUploader({
       </section>
     </div>
   );
+}
+
+function cleanContributorObservations(
+  observations: Partial<Record<AccessibilityFactorKey, ContributorObservationValue>>,
+) {
+  return Object.fromEntries(
+    Object.entries(observations).filter(([, value]) => Boolean(value)),
+  );
+}
+
+function hasContributorEvidence(
+  observations: Partial<Record<AccessibilityFactorKey, ContributorObservationValue>>,
+  notes: string,
+) {
+  return Object.keys(cleanContributorObservations(observations)).length > 0 || notes.trim().length > 0;
 }
 
 function errorQueueItem(file: File, message: string): QueuedPhoto {
