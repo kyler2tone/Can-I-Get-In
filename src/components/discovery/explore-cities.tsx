@@ -25,7 +25,7 @@ export function ExploreCities({ cities }: { cities: DiscoveryCity[] }) {
           {cities.map((city) => (
             <Link
               className="group min-w-48 rounded-[1.6rem] border border-line bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand hover:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand lg:first:col-span-2"
-              href={`/map?city=${encodeURIComponent(city.name)}`}
+              href={`/map?city=${encodeURIComponent(`${city.name}, ${city.state}`)}`}
               key={city.slug}
             >
               <span className="grid size-12 place-items-center rounded-2xl bg-sky-soft text-brand-strong">

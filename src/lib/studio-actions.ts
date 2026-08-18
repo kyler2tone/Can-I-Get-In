@@ -6,11 +6,11 @@ import { getSupabaseServerClient } from "@/lib/supabase";
 import { analyzePlaceAccessibility } from "@/lib/openai-accessibility";
 
 export async function approvePhotoAction(formData: FormData) {
-  await reviewPhoto(formData, "approved");
+  return reviewPhoto(formData, "approved");
 }
 
 export async function rejectPhotoAction(formData: FormData) {
-  await reviewPhoto(formData, "rejected");
+  return reviewPhoto(formData, "rejected");
 }
 
 export async function approvePlaceAction(formData: FormData) {
@@ -117,6 +117,13 @@ async function reviewPhoto(formData: FormData, status: "approved" | "rejected") 
       });
     }
   }
+
+  return {
+    ok: true,
+    photoId,
+    status,
+    message: status === "approved" ? "Photo approved" : "Photo rejected",
+  };
 }
 
 async function reviewPlace(formData: FormData, status: "published" | "hidden") {

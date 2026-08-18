@@ -23,7 +23,7 @@ const footerGroups = [
     title: "CIGI",
     links: [
       { label: "For Businesses", href: "/contribute" },
-      { label: "About", href: "/#about" },
+      { label: "About", href: "/about" },
     ],
   },
 ];

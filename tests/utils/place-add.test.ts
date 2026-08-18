@@ -5,6 +5,7 @@ import {
   searchGooglePlaces,
   transformGooglePlaceDetails,
 } from "@/lib/google-places";
+import { categoryFromGoogleTypes, normalizePlaceCategory } from "@/lib/place-categories";
 import {
   createGoogleVerifiedPlace,
   createManualPlaceSubmission,
@@ -64,6 +65,7 @@ describe("Google Places transformation", () => {
       primaryText: "Example Cafe",
       secondaryText: "Rapid City, SD",
       fullText: "Example Cafe",
+      suggestedCategory: "Coffee shop",
     });
     expect(fetcher).toHaveBeenCalledWith(
       "https://places.googleapis.com/v1/places:autocomplete",
@@ -202,9 +204,24 @@ describe("Google Places transformation", () => {
       postalCode: "57701",
       latitude: 44.0805,
       longitude: -103.231,
-      category: "Coffee Shop",
+      category: "Coffee shop",
     });
     expect(googlePlacesAttributionText()).toContain("Google");
+  });
+
+  it("maps Google types into the CIGI category taxonomy", () => {
+    expect(categoryFromGoogleTypes(["restaurant"])).toBe("Restaurant");
+    expect(categoryFromGoogleTypes(["coffee_shop"])).toBe("Coffee shop");
+    expect(categoryFromGoogleTypes(["library"])).toBe("Library");
+    expect(categoryFromGoogleTypes(["tourist_attraction"])).toBe("Attraction");
+    expect(categoryFromGoogleTypes(["unknown_type"])).toBe("Other");
+  });
+
+  it("normalizes category filter aliases without inventing new taxonomy values", () => {
+    expect(normalizePlaceCategory("restaurants")).toBe("Restaurant");
+    expect(normalizePlaceCategory("coffee")).toBe("Coffee shop");
+    expect(normalizePlaceCategory("nightlife")).toBe("Entertainment");
+    expect(normalizePlaceCategory("mystery")).toBe("Other");
   });
 });
 
@@ -284,12 +301,12 @@ describe("place identity and duplicates", () => {
       postalCode: "57701",
       latitude: 44.0805,
       longitude: -103.231,
-      category: "Cafe",
+      category: "Restaurant",
     });
 
     expect(mocks.rpc).toHaveBeenCalledWith(
       "create_google_verified_place",
-      expect.objectContaining({ p_google_place_id: "places/example" }),
+      expect.objectContaining({ p_google_place_id: "places/example", p_category: "Restaurant" }),
     );
     expect(place.contributeUrl).toBe("/places/example-cafe/contribute");
   });
@@ -327,6 +344,23 @@ describe("place identity and duplicates", () => {
     );
     expect(place.publishStatus).toBe("pending_review");
     expect(place.contributeUrl).toBe("/places/manual-place/contribute");
+  });
+
+  it("requires manual place categories from the CIGI taxonomy", () => {
+    expect(() =>
+      manualPlaceSchema.parse({
+        name: "Manual Place",
+        address: "Trailhead near 1st Street",
+        city: "Rapid City",
+        state: "SD",
+        postalCode: "",
+        category: "",
+        latitude: 44.08,
+        longitude: -103.23,
+        website: "",
+        notes: "",
+      }),
+    ).toThrow("Choose a category.");
   });
 
   it("keeps the Google Places API key out of the add-place client component", () => {

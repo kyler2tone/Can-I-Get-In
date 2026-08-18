@@ -162,6 +162,26 @@ describe("real discovery data", () => {
     expect(places).toHaveLength(1);
     expect(places[0].name).toBe("Near Library");
   });
+
+  it("applies category filters within a selected city scope", async () => {
+    const placesQuery = queryMock({
+      data: [
+        { ...basePlaceRows[0], category: "Coffee shop" },
+        { ...basePlaceRows[1], category: "Library" },
+      ],
+      error: null,
+    });
+    const photosQuery = queryMock({ data: [], error: null });
+    mocks.from
+      .mockReturnValueOnce({ select: vi.fn(() => placesQuery) })
+      .mockReturnValueOnce({ select: vi.fn(() => photosQuery) });
+
+    const places = await findDiscoverablePlaces({ city: "Rapid City, SD", category: "coffee" });
+
+    expect(places).toHaveLength(1);
+    expect(places[0].name).toBe("Far Cafe");
+    expect(placesQuery.ilike).toHaveBeenCalledWith("category", "%Coffee shop%");
+  });
 });
 
 describe("discovery UI states", () => {
@@ -170,6 +190,29 @@ describe("discovery UI states", () => {
 
     expect(screen.getByText("Help put your city on the map.")).toBeInTheDocument();
     expect(screen.queryByText(/3,281/)).not.toBeInTheDocument();
+  });
+
+  it("links featured cities to a city-scoped map view", () => {
+    render(
+      <ExploreCities
+        cities={[
+          {
+            name: "Rapid City",
+            state: "SD",
+            slug: "rapid-city-sd",
+            latitude: 44.080543,
+            longitude: -103.231014,
+            placeCount: 2,
+            approvedPhotoCount: 4,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Rapid City/i })).toHaveAttribute(
+      "href",
+      "/map?city=Rapid%20City%2C%20SD",
+    );
   });
 
   it("keeps Popular Near You usable when location is denied", () => {

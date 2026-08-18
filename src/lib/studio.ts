@@ -109,6 +109,22 @@ export type StudioUpdateRequest = {
   contributorUsername: string | null;
 };
 
+export type StudioCounts = {
+  pendingPhotos: number;
+};
+
+export async function getStudioCounts(): Promise<StudioCounts> {
+  const supabase = await getSupabaseServerClient();
+  const { count } = await supabase
+    .from("place_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("moderation_status", "pending");
+
+  return {
+    pendingPhotos: count ?? 0,
+  };
+}
+
 export async function getPendingStudioPhotos() {
   const supabase = await getSupabaseServerClient();
   const { data } = await supabase

@@ -10,7 +10,7 @@ const studioNavItems = [
   { href: "/studio/settings", label: "Settings", icon: Settings, enabled: false },
 ];
 
-export function StudioNav() {
+export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: number }) {
   return (
     <nav aria-label="Studio tools" className="border border-line bg-surface p-3">
       <Link className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-white" href="/studio">
@@ -27,7 +27,17 @@ export function StudioNav() {
               key={item.href}
             >
               <Icon size={16} aria-hidden="true" />
-              {item.label}
+              <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <span>{item.label}</span>
+                {item.href === "/studio/photos" && pendingPhotoCount > 0 ? (
+                  <span
+                    className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white"
+                    aria-label={`${pendingPhotoCount} photos awaiting review`}
+                  >
+                    {pendingPhotoCount}
+                  </span>
+                ) : null}
+              </span>
             </Link>
           ) : (
             <span

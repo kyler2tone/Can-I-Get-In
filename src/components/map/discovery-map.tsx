@@ -145,8 +145,9 @@ export function DiscoveryMap({
     const nextQuery = next?.query ?? query;
     const nextCity = next?.city ?? city;
     const nextCategory = next?.category ?? category;
-    const latitude = next?.latitude ?? userLocation?.latitude;
-    const longitude = next?.longitude ?? userLocation?.longitude;
+    const scopedToCity = Boolean(nextCity);
+    const latitude = scopedToCity ? undefined : next?.latitude ?? userLocation?.latitude;
+    const longitude = scopedToCity ? undefined : next?.longitude ?? userLocation?.longitude;
 
     if (latitude !== undefined && longitude !== undefined) {
       params.set("lat", String(latitude));

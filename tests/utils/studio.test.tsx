@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { canAccessStudio } from "@/lib/roles";
 import type { StudioPhoto, StudioPlace } from "@/lib/studio";
@@ -16,10 +16,17 @@ const mocks = vi.hoisted(() => ({
   selectEq: vi.fn(),
   maybeSingle: vi.fn(),
   analyzePlaceAccessibility: vi.fn(),
+  routerRefresh: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: mocks.routerRefresh,
+  }),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -128,6 +135,37 @@ describe("photo moderation queue", () => {
 
     expect(screen.getByText("No photos are awaiting review.")).toBeInTheDocument();
   });
+
+  it("disables duplicate moderation actions and shows an accessible toast", async () => {
+    mocks.requireUser.mockResolvedValue({ id: "moderator-1" });
+    mocks.getCurrentProfile.mockResolvedValue({ id: "moderator-1", role: "moderator" });
+    mocks.update.mockReturnValue({ eq: mocks.updateEq });
+    mocks.updateEq.mockResolvedValue({ error: null });
+    mocks.select.mockReturnValue({ eq: mocks.selectEq });
+    mocks.selectEq.mockReturnValue({ maybeSingle: mocks.maybeSingle });
+    mocks.maybeSingle.mockResolvedValue({ data: { place_id: "place-1" } });
+    mocks.from.mockReturnValue({ update: mocks.update, select: mocks.select });
+    mocks.analyzePlaceAccessibility.mockResolvedValue({ status: "completed" });
+    const { PhotoModerationQueue } = await import("@/components/studio/photo-moderation-queue");
+
+    render(<PhotoModerationQueue photos={[pendingPhoto]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(screen.getByRole("button", { name: "Approving..." })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Photo approved"));
+    expect(screen.queryByText("Main Street Cafe")).not.toBeInTheDocument();
+    expect(mocks.routerRefresh).toHaveBeenCalled();
+  });
+});
+
+describe("studio navigation", () => {
+  it("shows pending photo count only when there are photos awaiting review", async () => {
+    const { StudioNav } = await import("@/components/studio/studio-nav");
+
+    render(<StudioNav pendingPhotoCount={7} />);
+
+    expect(screen.getByLabelText("7 photos awaiting review")).toHaveTextContent("7");
+  });
 });
 
 describe("place review queue", () => {
@@ -226,6 +264,19 @@ describe("studio photo data", () => {
     expect(query.eq).toHaveBeenCalledWith("moderation_status", "pending");
     expect(photos).toHaveLength(1);
     expect(photos[0].placeName).toBe("Main Street Cafe");
+  });
+
+  it("loads the Studio pending photo count from moderation data", async () => {
+    const query = {
+      eq: vi.fn().mockResolvedValue({ count: 7 }),
+    };
+    mocks.from.mockReturnValueOnce({ select: vi.fn(() => query) });
+
+    const { getStudioCounts } = await import("@/lib/studio");
+    const counts = await getStudioCounts();
+
+    expect(query.eq).toHaveBeenCalledWith("moderation_status", "pending");
+    expect(counts.pendingPhotos).toBe(7);
   });
 
   it("public place photo loading requests approved photos only", async () => {

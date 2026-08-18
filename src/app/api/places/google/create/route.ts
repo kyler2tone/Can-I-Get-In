@@ -8,6 +8,7 @@ import {
   googlePlaceIdSchema,
   googleSessionTokenSchema,
 } from "@/lib/place-identity";
+import { isPlaceCategory } from "@/lib/place-categories";
 
 export async function POST(request: Request) {
   await requireCompletedProfile("/places/add");
@@ -53,7 +54,10 @@ export async function POST(request: Request) {
       });
     }
 
-    const place = await createGoogleVerifiedPlace(details);
+    const place = await createGoogleVerifiedPlace({
+      ...details,
+      category: parsed.category,
+    });
 
     return NextResponse.json({
       status: place.created ? "created" : "existing",
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
 }
 
 function parsePayload(payload: unknown):
-  | { ok: true; placeId: string; sessionToken: string }
+  | { ok: true; placeId: string; sessionToken: string; category: string }
   | { ok: false; message: string } {
   if (!payload || typeof payload !== "object") {
     return { ok: false, message: "Choose a place to add." };
@@ -80,10 +84,15 @@ function parsePayload(payload: unknown):
   const record = payload as Record<string, unknown>;
   const placeId = googlePlaceIdSchema.safeParse(record.placeId);
   const sessionToken = googleSessionTokenSchema.safeParse(record.sessionToken);
+  const category = typeof record.category === "string" ? record.category.trim() : "";
 
   if (!placeId.success || !sessionToken.success) {
     return { ok: false, message: "Choose a place from the search results." };
   }
 
-  return { ok: true, placeId: placeId.data, sessionToken: sessionToken.data };
+  if (!isPlaceCategory(category)) {
+    return { ok: false, message: "Choose a category for this place." };
+  }
+
+  return { ok: true, placeId: placeId.data, sessionToken: sessionToken.data, category };
 }

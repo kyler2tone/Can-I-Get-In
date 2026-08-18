@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, LocateFixed, MapPin, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { placeCategories } from "@/lib/place-categories";
 
 type ExistingPlace = {
   id: string;
@@ -20,6 +21,7 @@ type GoogleSuggestion = {
   primaryText: string;
   secondaryText: string;
   fullText: string;
+  suggestedCategory: string;
 };
 
 type CreateResponse = {
@@ -31,19 +33,6 @@ type CreateResponse = {
   };
 };
 
-const categoryOptions = [
-  "Restaurant",
-  "Coffee shop",
-  "Store",
-  "Grocery store",
-  "Medical office",
-  "Public building",
-  "Hotel",
-  "Entertainment",
-  "Park",
-  "Other",
-];
-
 export function AddPlaceWorkflow() {
   const [query, setQuery] = useState("");
   const [existingPlaces, setExistingPlaces] = useState<ExistingPlace[]>([]);
@@ -52,6 +41,7 @@ export function AddPlaceWorkflow() {
   const [existingState, setExistingState] = useState<"idle" | "loading" | "error">("idle");
   const [googleState, setGoogleState] = useState<"idle" | "loading" | "error">("idle");
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [googleCategories, setGoogleCategories] = useState<Record<string, string>>({});
   const [manualState, setManualState] = useState<"idle" | "submitting" | "locating">("idle");
   const [manualMessage, setManualMessage] = useState("");
   const [searchLocation, setSearchLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -111,7 +101,15 @@ export function AddPlaceWorkflow() {
         const response = await fetch(`/api/places/google?${params.toString()}`);
         const payload = (await response.json()) as { results?: GoogleSuggestion[]; message?: string };
         if (!response.ok) throw new Error(payload.message ?? "Google search failed");
-        setGoogleResults(payload.results ?? []);
+        const results = payload.results ?? [];
+        setGoogleResults(results);
+        setGoogleCategories((current) => {
+          const next = { ...current };
+          for (const result of results) {
+            if (!next[result.placeId]) next[result.placeId] = result.suggestedCategory || "Other";
+          }
+          return next;
+        });
         setGoogleState("idle");
       } catch (error) {
         setGoogleResults([]);
@@ -124,6 +122,15 @@ export function AddPlaceWorkflow() {
   }, [query, canSearchGoogle, searchLocation, sessionToken]);
 
   async function addGooglePlace(placeId: string) {
+    const category =
+      googleCategories[placeId] ??
+      googleResults.find((result) => result.placeId === placeId)?.suggestedCategory ??
+      "";
+    if (!category) {
+      setMessage("Choose a category for this place.");
+      return;
+    }
+
     setSelectedPlaceId(placeId);
     setMessage("Checking this place...");
 
@@ -131,7 +138,7 @@ export function AddPlaceWorkflow() {
       const response = await fetch("/api/places/google/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ placeId, sessionToken }),
+        body: JSON.stringify({ placeId, sessionToken, category }),
       });
       const payload = (await response.json()) as Partial<CreateResponse> & { message?: string };
       if (!response.ok || !payload.place?.contributeUrl) {
@@ -310,26 +317,16 @@ export function AddPlaceWorkflow() {
               </p>
             ) : null}
             {googleResults.map((result) => (
-              <button
-                className="w-full border border-line bg-white p-4 text-left transition hover:border-brand focus:outline focus:outline-2 focus:outline-brand"
-                disabled={selectedPlaceId === result.placeId}
+              <GoogleResultCard
+                category={googleCategories[result.placeId] ?? result.suggestedCategory ?? "Other"}
                 key={result.placeId}
-                onClick={() => void addGooglePlace(result.placeId)}
-                type="button"
-              >
-                <span className="flex items-start gap-3">
-                  <MapPin className="mt-1 text-brand" size={18} aria-hidden="true" />
-                  <span>
-                    <span className="block font-semibold">{result.primaryText}</span>
-                    {result.secondaryText ? (
-                      <span className="mt-1 block text-sm text-muted">{result.secondaryText}</span>
-                    ) : null}
-                    <span className="mt-2 block text-xs font-semibold text-brand-strong">
-                      {selectedPlaceId === result.placeId ? "Adding..." : "Select this place"}
-                    </span>
-                  </span>
-                </span>
-              </button>
+                onCategoryChange={(category) =>
+                  setGoogleCategories((current) => ({ ...current, [result.placeId]: category }))
+                }
+                onSelect={() => void addGooglePlace(result.placeId)}
+                result={result}
+                selected={selectedPlaceId === result.placeId}
+              />
             ))}
             {canSearchGoogle && googleState !== "loading" && !googleResults.length ? (
               <p className="rounded-md border border-dashed border-line bg-white p-4 text-sm text-muted">
@@ -364,8 +361,10 @@ export function AddPlaceWorkflow() {
                 className="mt-1 h-11 w-full rounded-md border border-line bg-white px-3"
                 name="category"
                 required
+                defaultValue=""
               >
-                {categoryOptions.map((category) => (
+                <option value="">Choose a category</option>
+                {placeCategories.map((category) => (
                   <option key={category} value={category}>
                     {category}
                   </option>
@@ -414,6 +413,58 @@ export function AddPlaceWorkflow() {
         </section>
       </aside>
     </div>
+  );
+}
+
+function GoogleResultCard({
+  result,
+  category,
+  selected,
+  onCategoryChange,
+  onSelect,
+}: {
+  result: GoogleSuggestion;
+  category: string;
+  selected: boolean;
+  onCategoryChange: (category: string) => void;
+  onSelect: () => void;
+}) {
+  return (
+    <article className="border border-line bg-white p-4 transition hover:border-brand focus-within:outline focus-within:outline-2 focus-within:outline-brand">
+      <div className="flex items-start gap-3">
+        <MapPin className="mt-1 text-brand" size={18} aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">{result.primaryText}</h3>
+          {result.secondaryText ? (
+            <p className="mt-1 text-sm text-muted">{result.secondaryText}</p>
+          ) : null}
+          <label className="mt-3 block text-sm font-medium">
+            Category
+            <select
+              className="mt-1 h-11 w-full rounded-md border border-line bg-white px-3"
+              disabled={selected}
+              onChange={(event) => onCategoryChange(event.target.value)}
+              value={category}
+            >
+              <option value="">Choose a category</option>
+              {placeCategories.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            className="mt-3"
+            disabled={selected || !category}
+            onClick={onSelect}
+            type="button"
+          >
+            {selected ? "Adding..." : "Add this place"}
+          </Button>
+        </div>
+      </div>
+    </article>
   );
 }
 

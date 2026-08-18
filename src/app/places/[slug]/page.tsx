@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { Camera, RefreshCw } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { AccessibilityGlance } from "@/components/places/accessibility-glance";
 import { PhotoGallery } from "@/components/places/photo-gallery";
 import { SuggestUpdateForm } from "@/components/places/suggest-update-form";
 import { getPublicAccessibilityIntelligence } from "@/lib/accessibility";
+import { emptyAccessibilityObservations } from "@/lib/accessibility-factors";
 import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
 
@@ -24,7 +26,6 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
   if (!place) notFound();
 
   const photos = await getApprovedPlacePhotos(place.id);
-  const accessibility = await getPublicAccessibilityIntelligence(place.id);
 
   return (
     <PageShell>
@@ -43,10 +44,9 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               <Camera size={18} aria-hidden="true" />
               Contribute photos
             </ButtonLink>
-            <AccessibilityGlance
-              observations={accessibility.observations}
-              summary={accessibility.publicSummary}
-            />
+            <Suspense fallback={<AccessibilityGlanceSkeleton />}>
+              <PlaceAccessibility placeId={place.id} />
+            </Suspense>
             <PhotoGallery photos={photos} placeSlug={slug} />
           </article>
           <aside className="space-y-5">
@@ -87,5 +87,53 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
         </div>
       </section>
     </PageShell>
+  );
+}
+
+async function PlaceAccessibility({ placeId }: { placeId: string }) {
+  let accessibility;
+
+  try {
+    accessibility = await getPublicAccessibilityIntelligence(placeId);
+  } catch {
+    return (
+      <AccessibilityGlance
+        observations={emptyAccessibilityObservations()}
+        summary="Accessibility details could not be loaded right now. The rest of this place page is still available."
+      />
+    );
+  }
+
+  return (
+    <AccessibilityGlance
+      observations={accessibility.observations}
+      summary={accessibility.publicSummary}
+    />
+  );
+}
+
+function AccessibilityGlanceSkeleton() {
+  return (
+    <section className="mt-8 border border-line bg-surface p-5" aria-labelledby="accessibility-glance-loading">
+      <h2 id="accessibility-glance-loading" className="text-xl font-semibold">
+        Accessibility at a glance
+      </h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 9 }).map((_, index) => (
+          <div className="rounded-md border border-line bg-white p-3" key={index}>
+            <div className="h-4 w-36 animate-pulse rounded bg-sky-soft" />
+            <div className="mt-3 h-3 w-20 animate-pulse rounded bg-background" />
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 border border-line bg-white p-4">
+        <div className="h-4 w-44 animate-pulse rounded bg-sky-soft" />
+        <div className="mt-3 h-3 w-full animate-pulse rounded bg-background" />
+        <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-background" />
+      </div>
+      <p className="sr-only" role="status">
+        Loading accessibility details.
+      </p>
+    </section>
   );
 }

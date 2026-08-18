@@ -9,7 +9,7 @@ const primaryLinks = [
   { label: "Map", href: "/map" },
   { label: "Contribute", href: "/contribute" },
   { label: "For Businesses", href: "/contribute" },
-  { label: "About", href: "/#about" },
+  { label: "About", href: "/about" },
 ];
 
 export async function SiteHeader({ sticky = true }: { sticky?: boolean }) {

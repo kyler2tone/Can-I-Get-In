@@ -1,5 +1,6 @@
 import { googlePlaceIdSchema, googleSessionTokenSchema } from "@/lib/place-identity";
 import { validCoordinates } from "@/lib/discovery";
+import { categoryFromGoogleTypes } from "@/lib/place-categories";
 
 const autocompleteUrl = "https://places.googleapis.com/v1/places:autocomplete";
 const placeDetailsBaseUrl = "https://places.googleapis.com/v1/places";
@@ -16,6 +17,7 @@ export type GooglePlaceSuggestion = {
   secondaryText: string;
   fullText: string;
   types: string[];
+  suggestedCategory: string;
 };
 
 export type GooglePlacesSearchContext = {
@@ -120,6 +122,7 @@ export async function searchGooglePlaces({
         }),
         fullText,
         types: prediction.types ?? [],
+        suggestedCategory: categoryFromGoogleTypes(prediction.types),
       };
     })
     .filter((result): result is GooglePlaceSuggestion => Boolean(result))
@@ -187,7 +190,7 @@ export function transformGooglePlaceDetails(payload: DetailsResponse): GooglePla
     postalCode,
     latitude,
     longitude,
-    category: formatGooglePlaceType(payload.types?.[0]),
+    category: categoryFromGoogleTypes(payload.types),
   };
 }
 
@@ -249,14 +252,4 @@ function findAddressComponent(
   textKey: "longText" | "shortText" = "longText",
 ) {
   return components.find((component) => component.types?.includes(type))?.[textKey]?.trim();
-}
-
-function formatGooglePlaceType(value: string | undefined) {
-  if (!value) return "Place";
-
-  return value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
 }

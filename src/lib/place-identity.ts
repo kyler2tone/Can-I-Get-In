@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { distanceMiles, validCoordinates, type Coordinates } from "@/lib/discovery";
+import { isPlaceCategory, normalizePlaceCategory } from "@/lib/place-categories";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const maxSearchLimit = 8;
@@ -20,7 +21,10 @@ export const manualPlaceSchema = z.object({
   city: z.string().trim().min(1, "City is required.").max(80),
   state: z.string().trim().min(1, "State or region is required.").max(40),
   postalCode: z.string().trim().max(20).optional().default(""),
-  category: z.string().trim().min(1, "Category is required.").max(80),
+  category: z
+    .string()
+    .trim()
+    .refine((value) => isPlaceCategory(value), "Choose a category."),
   latitude: z.coerce.number().min(-90, "Latitude must be between -90 and 90.").max(90),
   longitude: z.coerce.number().min(-180, "Longitude must be between -180 and 180.").max(180),
   website: z.string().trim().url("Enter a valid website URL.").or(z.literal("")).optional().default(""),
@@ -192,6 +196,7 @@ export async function createGoogleVerifiedPlace(input: {
   longitude: number;
   category: string;
 }) {
+  const category = normalizePlaceCategory(input.category);
   const supabase = await getSupabaseServerClient();
   const { data, error } = await supabase.rpc("create_google_verified_place", {
     p_google_place_id: input.googlePlaceId,
@@ -202,7 +207,7 @@ export async function createGoogleVerifiedPlace(input: {
     p_postal_code: input.postalCode,
     p_latitude: input.latitude,
     p_longitude: input.longitude,
-    p_category: input.category,
+    p_category: category,
   });
 
   if (error) throw new Error(error.message);

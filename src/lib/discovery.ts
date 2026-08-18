@@ -1,5 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { objectPathFromDatabasePath } from "@/lib/photo-upload";
+import { normalizePlaceCategory } from "@/lib/place-categories";
 import type { EntryOutcome } from "@/lib/types";
 
 const defaultDiscoveryLimit = 24;
@@ -118,7 +119,7 @@ export async function findDiscoverablePlaces({
 
   const normalizedCategory = category.trim();
   if (normalizedCategory) {
-    request = request.ilike("category", `%${escapeLike(normalizedCategory)}%`);
+    request = request.ilike("category", `%${escapeLike(normalizePlaceCategory(normalizedCategory))}%`);
   }
 
   const { data, error } = await request;
@@ -126,6 +127,9 @@ export async function findDiscoverablePlaces({
 
   const normalizedQuery = normalizeSearch(query);
   const normalizedCity = normalizeSearch(city);
+  const normalizedCategoryFilter = normalizedCategory
+    ? normalizeSearch(normalizePlaceCategory(normalizedCategory))
+    : "";
   const rows = ((data ?? []) as unknown as PlaceRow[])
     .map(toBaseDiscoveryPlace)
     .filter(isBaseDiscoveryPlace)
@@ -140,6 +144,11 @@ export async function findDiscoverablePlaces({
       if (!normalizedCity) return true;
 
       return normalizeSearch(`${place.city} ${place.state}`).includes(normalizedCity);
+    })
+    .filter((place) => {
+      if (!normalizedCategoryFilter) return true;
+
+      return normalizeSearch(place.category ?? "").includes(normalizedCategoryFilter);
     })
     .map((place) => ({
       ...place,
@@ -329,7 +338,7 @@ async function attachApprovedPhotoData(
 }
 
 function normalizeSearch(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, " ");
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ");
 }
 
 function escapeLike(value: string) {

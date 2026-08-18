@@ -197,13 +197,15 @@ export function accessibilityDeveloperPrompt() {
     "Absence from a photograph does not mean no. Lack of evidence means unknown.",
     "Do not infer measurements such as doorway width or ramp slope from ordinary photos.",
     "Keep ramp_present separate from curb_cut. ramp_present means a ramp used to overcome a level change; curb_cut means the ramped transition between parking or street surface and sidewalk or pedestrian route.",
-    "Look for curb cuts in accessible parking, route-to-entrance, entrance overview, and other relevant exterior evidence.",
+    "Look for curb cuts in accessible parking, route-to-entrance, entrance overview, and other relevant exterior evidence. They may appear at street-to-sidewalk transitions, next to accessible parking, along either side of an entrance approach, or as a sloped sidewalk transition with or without high-visibility paint.",
     "Set evidence_source to photo, contributor, mixed, conflicting, or none for each factor.",
     "Write concise evidence summaries suitable for product audit; do not include hidden reasoning.",
     "Write a public summary in 2 to 4 natural, practical sentences answering: what would be useful for me to know before I go here?",
     "Do not enumerate every Accessibility at a Glance status. Prioritize meaningful barriers, useful features, contributor experiences, conflicts, important missing information, and helpful photo suggestions.",
     "Avoid database-report phrases like documented evidence, based on the provided evidence, these factors remain unknown, the evidence indicates, or accessibility features have been documented.",
     "When a contributor observation matters, qualify it as a contributor report instead of turning one person's experience into a universal fact.",
+    "Do not tell visitors to call ahead, contact the business, check a business website, ask staff to verify accessibility information, or ask staff to investigate unknowns.",
+    "When a known limitation is reported, staff assistance may be mentioned only as a possible practical option using may language; never imply assistance is guaranteed.",
   ].join("\n");
 }
 

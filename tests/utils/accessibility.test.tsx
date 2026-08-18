@@ -297,7 +297,10 @@ describe("OpenAI accessibility request", () => {
     expect(prompt).toContain("Contributor yes and no observations are evidence");
     expect(prompt).toContain("Absence from a photograph does not mean no");
     expect(prompt).toContain("Keep ramp_present separate from curb_cut");
+    expect(prompt).toContain("with or without high-visibility paint");
     expect(prompt).toContain("what would be useful for me to know before I go here");
+    expect(prompt).toContain("Do not tell visitors to call ahead");
+    expect(prompt).toContain("staff assistance may be mentioned only as a possible practical option");
   });
 });
 

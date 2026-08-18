@@ -18,13 +18,13 @@ import { PageShell } from "@/components/page-shell";
 import { findDiscoverablePlaces, getDiscoveryCities, getDiscoveryStats } from "@/lib/discovery";
 
 const categories = [
-  { label: "Restaurants", icon: Utensils, color: "text-[#ff6a3d]", href: "/map?category=restaurants" },
-  { label: "Coffee", icon: Coffee, color: "text-[#006eff]", href: "/map?category=coffee" },
-  { label: "Shopping", icon: ShoppingBag, color: "text-[#e14fb3]", href: "/map?category=shopping" },
-  { label: "Parks", icon: Trees, color: "text-[#199a4b]", href: "/map?category=parks" },
-  { label: "Hotels", icon: Hotel, color: "text-[#7b4ce2]", href: "/map?category=hotels" },
-  { label: "Attractions", icon: Camera, color: "text-[#00a8b5]", href: "/map?category=attractions" },
-  { label: "Nightlife", icon: Music2, color: "text-[#f5a400]", href: "/map?category=nightlife" },
+  { label: "Restaurants", icon: Utensils, color: "text-[#ff6a3d]", href: "/map?category=Restaurant" },
+  { label: "Coffee", icon: Coffee, color: "text-[#006eff]", href: "/map?category=Coffee%20shop" },
+  { label: "Shopping", icon: ShoppingBag, color: "text-[#e14fb3]", href: "/map?category=Shopping" },
+  { label: "Parks", icon: Trees, color: "text-[#199a4b]", href: "/map?category=Park" },
+  { label: "Hotels", icon: Hotel, color: "text-[#7b4ce2]", href: "/map?category=Hotel" },
+  { label: "Attractions", icon: Camera, color: "text-[#00a8b5]", href: "/map?category=Attraction" },
+  { label: "Nightlife", icon: Music2, color: "text-[#f5a400]", href: "/map?category=Entertainment" },
   { label: "More", icon: Sparkles, color: "text-muted", href: "/map" },
 ];
 
