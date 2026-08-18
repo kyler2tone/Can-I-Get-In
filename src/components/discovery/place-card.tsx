@@ -1,7 +1,6 @@
 import { Camera, MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { StatusPill } from "@/components/ui/status-pill";
 import type { DiscoveryPlace } from "@/lib/discovery";
 
 export function PlaceCard({ place }: { place: DiscoveryPlace }) {
@@ -43,7 +42,6 @@ export function PlaceCard({ place }: { place: DiscoveryPlace }) {
         <h3 className="mt-2 text-xl font-black">{place.name}</h3>
         <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted">{place.address}</p>
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <StatusPill outcome={place.currentEntryStatus} />
           {place.distanceMiles !== null ? (
             <span className="inline-flex items-center gap-1 rounded-full bg-sky-soft px-3 py-1 text-xs font-bold text-brand-strong">
               <MapPin size={13} aria-hidden="true" />
@@ -51,9 +49,6 @@ export function PlaceCard({ place }: { place: DiscoveryPlace }) {
             </span>
           ) : null}
         </div>
-        {place.currentSummary ? (
-          <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted">{place.currentSummary}</p>
-        ) : null}
       </div>
     </Link>
   );

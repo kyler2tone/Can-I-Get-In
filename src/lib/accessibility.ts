@@ -10,6 +10,7 @@ import {
   isAccessibilityFactor,
   type AccessibilityFactorKey,
   type AccessibilityFactorObservation,
+  type AccessibilityEvidenceSource,
   type AccessibilityStatus,
 } from "@/lib/accessibility-factors";
 
@@ -33,6 +34,7 @@ const modelObservationSchema = z.object({
   status: z.enum(["yes", "no", "unknown"]),
   confidence: z.number().min(0).max(1),
   evidence_summary: z.string().min(1).max(500),
+  evidence_source: z.enum(["photo", "contributor", "mixed", "conflicting", "none"]),
 });
 
 export const accessibilityAnalysisSchema = z.object({
@@ -68,6 +70,7 @@ type ObservationRow = {
   status: AccessibilityStatus;
   confidence: number | string | null;
   evidence_summary: string | null;
+  evidence_source: AccessibilityEvidenceSource | null;
 };
 
 type ContributorEvidenceRow = {
@@ -81,7 +84,7 @@ export async function getPublicAccessibilityIntelligence(placeId: string) {
   const [{ data: observations }, { data: analysis }] = await Promise.all([
     supabase
       .from("place_accessibility_observations")
-      .select("factor, status, confidence, evidence_summary")
+      .select("factor, status, confidence, evidence_summary, evidence_source")
       .eq("place_id", placeId),
     supabase
       .from("place_ai_analyses")
@@ -103,6 +106,7 @@ export async function getPublicAccessibilityIntelligence(placeId: string) {
           status: row.status,
           confidence: Number(row.confidence ?? 0),
           evidenceSummary: row.evidence_summary ?? "",
+          evidenceSource: row.evidence_source ?? "none",
         } satisfies AccessibilityFactorObservation,
       ]),
   );
@@ -254,6 +258,7 @@ export async function saveAccessibilityAnalysis({
           status: observation.status,
           confidence: observation.confidence,
           evidence_summary: observation.evidence_summary,
+          evidence_source: observation.evidence_source,
           source: "ai",
           last_analyzed_at: now,
         },

@@ -1,5 +1,6 @@
 import {
   accessibilityAnalysisSchema,
+  contributorObservationLabel,
   evidenceFingerprint,
   getApprovedEvidenceForAnalysis,
   markAccessibilityAnalysisFailed,
@@ -137,7 +138,19 @@ export async function requestAccessibilityAnalysis({
                   category: photo.categoryLabel,
                   uploadedAt: photo.createdAt,
                 })),
-                contributorEvidence,
+                contributorEvidence: contributorEvidence.map((item) => ({
+                  createdAt: item.createdAt,
+                  notes: item.notes,
+                  observations: Object.fromEntries(
+                    Object.entries(item.observations).map(([factor, value]) => [
+                      factor,
+                      {
+                        value,
+                        label: contributorObservationLabel(value),
+                      },
+                    ]),
+                  ),
+                })),
               }),
             },
             ...photos.map((photo) => ({
@@ -179,10 +192,18 @@ export function accessibilityDeveloperPrompt() {
     "Do not declare the place accessible, inaccessible, ADA compliant, or legally compliant.",
     "Use yes only when the evidence clearly supports the factor.",
     "Use no only when the evidence clearly shows absence or a barrier for the named factor.",
+    "Contributor yes and no observations are evidence. Preserve them as contributor-reported evidence instead of calling them missing evidence.",
     "Use unknown when evidence is missing, ambiguous, cropped, conflicting, or not visible.",
+    "Absence from a photograph does not mean no. Lack of evidence means unknown.",
     "Do not infer measurements such as doorway width or ramp slope from ordinary photos.",
+    "Keep ramp_present separate from curb_cut. ramp_present means a ramp used to overcome a level change; curb_cut means the ramped transition between parking or street surface and sidewalk or pedestrian route.",
+    "Look for curb cuts in accessible parking, route-to-entrance, entrance overview, and other relevant exterior evidence.",
+    "Set evidence_source to photo, contributor, mixed, conflicting, or none for each factor.",
     "Write concise evidence summaries suitable for product audit; do not include hidden reasoning.",
-    "Write a public summary in 2 to 4 plain-language sentences that distinguishes documented evidence from unknowns.",
+    "Write a public summary in 2 to 4 natural, practical sentences answering: what would be useful for me to know before I go here?",
+    "Do not enumerate every Accessibility at a Glance status. Prioritize meaningful barriers, useful features, contributor experiences, conflicts, important missing information, and helpful photo suggestions.",
+    "Avoid database-report phrases like documented evidence, based on the provided evidence, these factors remain unknown, the evidence indicates, or accessibility features have been documented.",
+    "When a contributor observation matters, qualify it as a contributor report instead of turning one person's experience into a universal fact.",
   ].join("\n");
 }
 
@@ -193,11 +214,15 @@ export function accessibilityJsonSchemaFormat() {
       {
         type: "object",
         additionalProperties: false,
-        required: ["status", "confidence", "evidence_summary"],
+        required: ["status", "confidence", "evidence_summary", "evidence_source"],
         properties: {
           status: { type: "string", enum: ["yes", "no", "unknown"] },
           confidence: { type: "number", minimum: 0, maximum: 1 },
           evidence_summary: { type: "string", minLength: 1, maxLength: 500 },
+          evidence_source: {
+            type: "string",
+            enum: ["photo", "contributor", "mixed", "conflicting", "none"],
+          },
         },
       },
     ]),
@@ -233,6 +258,7 @@ function unknownOnlyOutput(reason: string): AccessibilityAnalysisOutput {
           status: "unknown",
           confidence: 1,
           evidence_summary: reason,
+          evidence_source: "none",
         },
       ]),
     ) as AccessibilityAnalysisOutput["observations"],

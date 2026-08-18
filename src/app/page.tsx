@@ -89,7 +89,7 @@ export default async function Home() {
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">Contributors</p>
           <h2 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-foreground sm:text-5xl">
-            Your photos. Their confidence.
+            Your photos. Their next visit.
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-8 text-muted">
             Snap what people need to know before they arrive: entrances, routes, parking, patios,

@@ -79,8 +79,7 @@ export function HomeHero() {
             Where are you headed?
           </h1>
           <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-white [text-shadow:_0_2px_14px_rgb(0_0_0_/_45%)] min-[375px]:text-[0.95rem] sm:mt-5 sm:text-lg sm:leading-8">
-            Search places and cities with community photos, accessibility notes, and confidence
-            before you go.
+            Search places and cities with community photos and accessibility notes before you go.
           </p>
           <div className="mt-5 flex flex-col gap-2.5 sm:mt-7 sm:flex-row sm:items-center sm:gap-3">
             <form

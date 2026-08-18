@@ -5,6 +5,7 @@ export const accessibilityFactors = [
   { key: "automatic_door", label: "Automatic door" },
   { key: "ramp_present", label: "Ramp present" },
   { key: "accessible_parking", label: "Accessible parking" },
+  { key: "curb_cut", label: "Curb cut" },
   { key: "accessible_restroom", label: "Accessible restroom" },
   { key: "interior_route", label: "Interior route" },
   { key: "seating_access", label: "Seating access" },
@@ -13,6 +14,12 @@ export const accessibilityFactors = [
 
 export type AccessibilityFactorKey = (typeof accessibilityFactors)[number]["key"];
 export type AccessibilityStatus = "yes" | "no" | "unknown";
+export type AccessibilityEvidenceSource =
+  | "photo"
+  | "contributor"
+  | "mixed"
+  | "conflicting"
+  | "none";
 
 export type AccessibilityFactorObservation = {
   factor: AccessibilityFactorKey;
@@ -20,6 +27,7 @@ export type AccessibilityFactorObservation = {
   status: AccessibilityStatus;
   confidence: number;
   evidenceSummary: string;
+  evidenceSource: AccessibilityEvidenceSource;
 };
 
 export const accessibilityStatusMeta: Record<
@@ -58,5 +66,6 @@ export function emptyAccessibilityObservations(): AccessibilityFactorObservation
     status: "unknown",
     confidence: 1,
     evidenceSummary: "No approved evidence has been analyzed for this factor yet.",
+    evidenceSource: "none",
   }));
 }

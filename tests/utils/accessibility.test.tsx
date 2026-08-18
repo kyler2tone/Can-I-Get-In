@@ -11,6 +11,7 @@ import {
 } from "@/lib/accessibility";
 import { emptyAccessibilityObservations } from "@/lib/accessibility-factors";
 import {
+  accessibilityDeveloperPrompt,
   accessibilityJsonSchemaFormat,
   getAccessibilityModel,
   requestAccessibilityAnalysis,
@@ -37,6 +38,7 @@ describe("accessibility structured output", () => {
     const parsed = accessibilityAnalysisSchema.parse(validAnalysisOutput());
 
     expect(parsed.observations.step_free_entrance.status).toBe("yes");
+    expect(parsed.observations.curb_cut.evidence_source).toBe("contributor");
     expect(parsed.public_summary).toContain("community photos");
   });
 
@@ -61,12 +63,61 @@ describe("accessibility structured output", () => {
       status: "unknown",
       confidence: 0.2,
       evidence_summary: "No restroom photos are available.",
+      evidence_source: "none",
     };
 
     const normalized = normalizeAnalysisOutput(output);
 
     expect(normalized.observations.accessible_restroom.status).toBe("unknown");
     expect(normalized.observations.accessible_restroom.confidence).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it("supports curb cut without implying a building ramp", () => {
+    const parsed = accessibilityAnalysisSchema.parse({
+      ...validAnalysisOutput(),
+      observations: {
+        ...validAnalysisOutput().observations,
+        curb_cut: {
+          status: "yes",
+          confidence: 0.9,
+          evidence_summary: "A contributor reported curb cuts near the route to the entrance.",
+          evidence_source: "contributor",
+        },
+        ramp_present: {
+          status: "unknown",
+          confidence: 0.9,
+          evidence_summary: "The route does not clearly show a ramp used to overcome a level change.",
+          evidence_source: "none",
+        },
+      },
+    });
+
+    expect(parsed.observations.curb_cut.status).toBe("yes");
+    expect(parsed.observations.ramp_present.status).toBe("unknown");
+  });
+
+  it("supports a ramp without implying a curb cut", () => {
+    const parsed = accessibilityAnalysisSchema.parse({
+      ...validAnalysisOutput(),
+      observations: {
+        ...validAnalysisOutput().observations,
+        ramp_present: {
+          status: "yes",
+          confidence: 0.9,
+          evidence_summary: "The route photo shows a ramp along the entrance path.",
+          evidence_source: "photo",
+        },
+        curb_cut: {
+          status: "unknown",
+          confidence: 0.9,
+          evidence_summary: "No parking-to-sidewalk transition is visible.",
+          evidence_source: "none",
+        },
+      },
+    });
+
+    expect(parsed.observations.ramp_present.status).toBe("yes");
+    expect(parsed.observations.curb_cut.status).toBe("unknown");
   });
 
   it("creates stable evidence fingerprints for unchanged evidence", () => {
@@ -160,13 +211,50 @@ describe("OpenAI accessibility request", () => {
 
     const [, init] = fetcherMock.mock.calls[0] as unknown as [string, RequestInit];
     const body = JSON.parse(String(init.body)) as {
-      input: Array<{ content: Array<{ type: string }> }>;
+      input: Array<{ content: Array<{ type: string; text?: string }> }>;
       text: { format: { type: string; strict: boolean } };
+    };
+    const promptPayload = JSON.parse(String(body.input[1].content[0].text)) as {
+      factors: Array<{ key: string }>;
     };
 
     expect(fetcherMock).toHaveBeenCalledWith("https://api.openai.com/v1/responses", expect.any(Object));
     expect(body.input[1].content.some((item) => item.type === "input_image")).toBe(true);
     expect(body.text.format).toMatchObject({ type: "json_schema", strict: true });
+    expect(promptPayload.factors.map((factor) => factor.key)).toContain("curb_cut");
+  });
+
+  it("passes contributor observations with human-readable provenance labels", async () => {
+    const fetcherMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ output_text: JSON.stringify(validAnalysisOutput()) }),
+    }));
+
+    await requestAccessibilityAnalysis({
+      model: "gpt-5-nano",
+      placeId: "place-1",
+      photos: [],
+      contributorEvidence: [
+        {
+          observations: { counter_access: "no", curb_cut: "yes" },
+          notes: "Counter looked high. Curb cuts were off to both sides.",
+          createdAt: "2026-08-18T12:00:00Z",
+        },
+      ],
+      fetcher: fetcherMock as unknown as typeof fetch,
+    });
+
+    const [, init] = fetcherMock.mock.calls[0] as unknown as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as { input: Array<{ content: Array<{ text?: string }> }> };
+    const promptPayload = JSON.parse(String(body.input[1].content[0].text)) as {
+      contributorEvidence: Array<{ observations: Record<string, { value: string; label: string }> }>;
+    };
+
+    expect(promptPayload.contributorEvidence[0].observations.counter_access).toEqual({
+      value: "no",
+      label: "No",
+    });
+    expect(promptPayload.contributorEvidence[0].observations.curb_cut.label).toBe("Yes");
   });
 
   it("fails cleanly on OpenAI errors", async () => {
@@ -195,7 +283,21 @@ describe("OpenAI accessibility request", () => {
     const format = accessibilityJsonSchemaFormat();
 
     expect(format.schema.properties.observations.required).toContain("step_free_entrance");
+    expect(format.schema.properties.observations.required).toContain("curb_cut");
     expect(format.schema.properties.observations.required).toContain("counter_access");
+    expect(format.schema.properties.observations.properties.curb_cut.required).toContain(
+      "evidence_source",
+    );
+  });
+
+  it("keeps conservative and practical summary guidance in the model prompt", () => {
+    const prompt = accessibilityDeveloperPrompt();
+
+    expect(prompt).toContain("Do not enumerate every Accessibility at a Glance status");
+    expect(prompt).toContain("Contributor yes and no observations are evidence");
+    expect(prompt).toContain("Absence from a photograph does not mean no");
+    expect(prompt).toContain("Keep ramp_present separate from curb_cut");
+    expect(prompt).toContain("what would be useful for me to know before I go here");
   });
 });
 
@@ -209,8 +311,48 @@ describe("public accessibility glance", () => {
     );
 
     expect(screen.getByText("Accessibility at a glance")).toBeInTheDocument();
-    expect(screen.getAllByText("Unknown")).toHaveLength(8);
+    expect(screen.getAllByText("Unknown")).toHaveLength(9);
     expect(screen.getByText("AI accessibility summary")).toBeInTheDocument();
+  });
+
+  it("places curb cut immediately after accessible parking", () => {
+    render(
+      <AccessibilityGlance
+        observations={emptyAccessibilityObservations()}
+        summary="More photos of the entrance and parking area would help."
+      />,
+    );
+
+    const labels = screen
+      .getAllByRole("heading", { level: 3 })
+      .map((heading) => heading.textContent);
+
+    expect(labels.slice(0, 9)).toEqual([
+      "Step-free entrance",
+      "Automatic door",
+      "Ramp present",
+      "Accessible parking",
+      "Curb cut",
+      "Accessible restroom",
+      "Interior route",
+      "Seating access",
+      "Counter access",
+    ]);
+  });
+
+  it("does not render removed public score or legacy outcome sections", () => {
+    render(
+      <AccessibilityGlance
+        observations={emptyAccessibilityObservations()}
+        summary="A contributor reported curb cuts nearby. More entrance photos would help."
+      />,
+    );
+
+    expect(screen.queryByText(/Community confidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Current summary/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Factual observations/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/May require assistance/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Insufficient information/i)).not.toBeInTheDocument();
   });
 });
 
@@ -221,45 +363,59 @@ function validAnalysisOutput(): AccessibilityAnalysisOutput {
         status: "yes",
         confidence: 0.92,
         evidence_summary: "The entrance approach appears level in the approved photos.",
+        evidence_source: "photo",
       },
       automatic_door: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "No automatic door control is visible.",
+        evidence_source: "none",
       },
       ramp_present: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "Ramp evidence is not visible.",
+        evidence_source: "none",
       },
       accessible_parking: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "No parking photos are available.",
+        evidence_source: "none",
+      },
+      curb_cut: {
+        status: "yes",
+        confidence: 0.9,
+        evidence_summary: "A contributor reported curb cuts near the route to the entrance.",
+        evidence_source: "contributor",
       },
       accessible_restroom: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "No restroom photos are available.",
+        evidence_source: "none",
       },
       interior_route: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "Interior route evidence is not available.",
+        evidence_source: "none",
       },
       seating_access: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "Seating evidence is not available.",
+        evidence_source: "none",
       },
       counter_access: {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "Counter evidence is not available.",
+        evidence_source: "none",
       },
     },
     public_summary:
-      "Recent community photos document a step-free entrance. Restroom, seating, and counter details are still unknown.",
+      "Recent community photos show a step-free entrance. A contributor reported curb cuts nearby.",
   };
 }
 

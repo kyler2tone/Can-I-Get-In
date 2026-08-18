@@ -2,15 +2,12 @@ import { notFound } from "next/navigation";
 import { Camera, RefreshCw } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { ButtonLink } from "@/components/ui/button";
-import { StatusPill } from "@/components/ui/status-pill";
 import { AccessibilityGlance } from "@/components/places/accessibility-glance";
 import { PhotoGallery } from "@/components/places/photo-gallery";
 import { SuggestUpdateForm } from "@/components/places/suggest-update-form";
-import { formatEntryOutcome } from "@/lib/entry-outcomes";
 import { getPublicAccessibilityIntelligence } from "@/lib/accessibility";
 import { getApprovedPlacePhotos, getPlacePageData } from "@/lib/places";
 import { photoCategories } from "@/lib/photo-categories";
-import type { EntryOutcome } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +25,6 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
 
   const photos = await getApprovedPlacePhotos(place.id);
   const accessibility = await getPublicAccessibilityIntelligence(place.id);
-  const currentEntryStatus = place.currentEntryStatus as EntryOutcome;
 
   return (
     <PageShell>
@@ -41,10 +37,6 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             <h1 className="mt-2 text-3xl font-semibold">{place.name}</h1>
             <p className="mt-2 text-muted">{place.address}</p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <StatusPill outcome={currentEntryStatus} />
-              <span className="text-sm text-muted">
-                Community confidence: {place.communityConfidence}
-              </span>
               <span className="text-sm text-muted">Last updated: {place.lastVerifiedAt}</span>
             </div>
             <ButtonLink className="mt-5 w-full lg:hidden" href={`/places/${slug}/contribute`}>
@@ -55,33 +47,6 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               observations={accessibility.observations}
               summary={accessibility.publicSummary}
             />
-            <section className="mt-8 border border-line bg-surface p-5">
-              <h2 className="text-xl font-semibold">Current summary</h2>
-              <p className="mt-3 leading-7 text-muted">{place.currentSummary}</p>
-              <p className="mt-3 text-sm text-muted">
-                Entry outcome shown as: {formatEntryOutcome(currentEntryStatus)}.
-              </p>
-            </section>
-            <section className="mt-5 border border-line bg-surface p-5">
-              <h2 className="text-xl font-semibold">Factual observations</h2>
-              {place.observations.length ? (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {place.observations.map((observation) => (
-                    <div className="border border-line bg-white p-4" key={observation.label}>
-                      <h3 className="font-semibold">{observation.label}</h3>
-                      <p className="mt-1 text-sm text-muted">{observation.value}</p>
-                      <p className="mt-2 text-xs text-muted">
-                        {observation.confidence} confidence · {observation.source}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-muted">
-                  No factual observations have been published for this place yet.
-                </p>
-              )}
-            </section>
             <PhotoGallery photos={photos} placeSlug={slug} />
           </article>
           <aside className="space-y-5">
