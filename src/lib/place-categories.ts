@@ -57,6 +57,21 @@ const googleTypeCategoryMap: Record<string, PlaceCategory> = {
   zoo: "Attraction",
 };
 
+const googleTypePriority: Partial<Record<PlaceCategory, number>> = {
+  "Coffee shop": 10,
+  Restaurant: 20,
+  Library: 30,
+  Park: 40,
+  Hotel: 50,
+  "Grocery store": 60,
+  "Medical office": 70,
+  "Public building": 80,
+  Entertainment: 90,
+  Attraction: 100,
+  Shopping: 110,
+  Other: 999,
+};
+
 export function isPlaceCategory(value: string): value is PlaceCategory {
   return placeCategories.includes(value as PlaceCategory);
 }
@@ -77,10 +92,18 @@ export function normalizePlaceCategory(value: string | null | undefined): PlaceC
 }
 
 export function categoryFromGoogleTypes(types: string[] | undefined): PlaceCategory {
+  let bestCategory: PlaceCategory = "Other";
+  let bestPriority = googleTypePriority.Other ?? 999;
+
   for (const type of types ?? []) {
     const category = googleTypeCategoryMap[type];
-    if (category) return category;
+    if (!category) continue;
+    const priority = googleTypePriority[category] ?? 999;
+    if (priority < bestPriority) {
+      bestCategory = category;
+      bestPriority = priority;
+    }
   }
 
-  return "Other";
+  return bestCategory;
 }

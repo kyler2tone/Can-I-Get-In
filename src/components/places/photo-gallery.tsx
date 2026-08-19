@@ -21,6 +21,8 @@ export function PhotoGallery({
 }) {
   const [galleryPhotos, setGalleryPhotos] = useState(photos);
   const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [toast, setToast] = useState("");
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const groups = photoCategories.map((category) => ({
@@ -29,23 +31,34 @@ export function PhotoGallery({
       .filter((photo) => photo.category === category.value)
       .map((photo) => ({ ...photo, categoryLabel: category.label })),
   }));
-  const lightboxPhotos = groups.flatMap((group) => group.photos);
+  const activeGroup = groups.find((group) => group.value === activeCategory);
+  const lightboxPhotos = activeGroup?.photos ?? [];
   const activeIndex = lightboxPhotos.findIndex((photo) => photo.id === activePhotoId);
   const activePhoto = activeIndex >= 0 ? lightboxPhotos[activeIndex] : null;
 
-  function openLightbox(photoId: string, button: HTMLButtonElement) {
+  useEffect(() => {
+    if (!toast) return;
+    const handle = window.setTimeout(() => setToast(""), 2400);
+    return () => window.clearTimeout(handle);
+  }, [toast]);
+
+  function openLightbox(photoId: string, category: string, button: HTMLButtonElement) {
     activeButtonRef.current = button;
+    setActiveCategory(category);
     setActivePhotoId(photoId);
   }
 
   function closeLightbox() {
     setActivePhotoId(null);
+    setActiveCategory(null);
     window.setTimeout(() => activeButtonRef.current?.focus(), 0);
   }
 
   function removePhoto(photoId: string) {
     setGalleryPhotos((current) => current.filter((photo) => photo.id !== photoId));
     setActivePhotoId(null);
+    setActiveCategory(null);
+    setToast("Photo deleted");
   }
 
   return (
@@ -66,7 +79,7 @@ export function PhotoGallery({
                     {photo.signedUrl ? (
                       <button
                         className="block w-full focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand"
-                        onClick={(event) => openLightbox(photo.id, event.currentTarget)}
+                        onClick={(event) => openLightbox(photo.id, group.value, event.currentTarget)}
                         type="button"
                       >
                         <img
@@ -101,6 +114,13 @@ export function PhotoGallery({
             )}
           </div>
         ))}
+      </div>
+      <div className="fixed right-4 top-20 z-50" aria-live="polite" aria-atomic="true">
+        {toast ? (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-lg" role="status">
+            {toast}
+          </p>
+        ) : null}
       </div>
       {activePhoto ? (
         <PhotoLightbox
@@ -212,16 +232,17 @@ function PhotoLightbox({
       aria-label="Photo viewer"
       aria-modal="true"
       className="fixed inset-0 z-50 bg-black/82 px-3 py-4 text-white sm:px-6"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+      onMouseDown={onClose}
       role="dialog"
     >
-      <div className="mx-auto flex h-full max-w-6xl flex-col">
+      <div className="mx-auto flex h-full max-w-6xl flex-col" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">{photo.categoryLabel}</p>
-            <p className="text-xs text-white/72">{photo.created_at.slice(0, 10)}</p>
+            <p className="text-xs text-white/72">
+              {photos.length > 1 ? `${activeIndex + 1} of ${photos.length} · ` : ""}
+              {photo.created_at.slice(0, 10)}
+            </p>
           </div>
           <div className="relative flex items-center gap-2">
             {photo.canManage ? (
@@ -238,7 +259,7 @@ function PhotoLightbox({
                 {menuOpen ? (
                   <div className="absolute right-12 top-12 w-44 rounded-md bg-white p-2 text-foreground shadow-lg">
                     <button
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-rose-900 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-rose-900 transition hover:bg-rose-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-rose-500 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:active:translate-y-0"
                       data-lightbox-control
                       disabled={isDeleting}
                       onClick={() => void deletePhoto()}
@@ -279,6 +300,7 @@ function PhotoLightbox({
             <img
               alt={`${photo.categoryLabel} accessibility photo enlarged`}
               className="max-h-full max-w-full object-contain"
+              onMouseDown={(event) => event.stopPropagation()}
               src={photo.signedUrl}
             />
           ) : null}

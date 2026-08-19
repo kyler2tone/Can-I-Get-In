@@ -11,7 +11,7 @@ describe("About page navigation", () => {
   });
 
   it("points navigation and footer links to /about instead of a dead anchor", () => {
-    const headerSource = readFileSync("src/components/site-header.tsx", "utf8");
+    const headerSource = readFileSync("src/components/site-header-client.tsx", "utf8");
     const shellSource = readFileSync("src/components/page-shell.tsx", "utf8");
 
     expect(headerSource).toContain('href: "/about"');

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireStudioAccess } from "@/lib/roles";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { analyzePlaceAccessibility } from "@/lib/openai-accessibility";
@@ -102,20 +103,22 @@ async function reviewPhoto(formData: FormData, status: "approved" | "rejected") 
   revalidatePath("/studio/photos");
 
   if (status === "approved" && photo?.place_id) {
-    try {
-      const result = await analyzePlaceAccessibility(photo.place_id);
-      if (result.status === "failed") {
+    after(async () => {
+      try {
+        const result = await analyzePlaceAccessibility(photo.place_id);
+        if (result.status === "failed") {
+          console.warn("[accessibility-analysis]", {
+            placeId: photo.place_id,
+            status: result.status,
+          });
+        }
+      } catch {
         console.warn("[accessibility-analysis]", {
           placeId: photo.place_id,
-          status: result.status,
+          status: "failed",
         });
       }
-    } catch {
-      console.warn("[accessibility-analysis]", {
-        placeId: photo.place_id,
-        status: "failed",
-      });
-    }
+    });
   }
 
   return {

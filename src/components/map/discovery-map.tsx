@@ -1,15 +1,15 @@
 "use client";
 
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as maplibregl from "maplibre-gl";
 import Link from "next/link";
-import { Filter, LocateFixed, Search } from "lucide-react";
+import { Filter } from "lucide-react";
 import { formatDistance } from "@/components/discovery/place-card";
 import { Button } from "@/components/ui/button";
+import { UnifiedPlaceSearch } from "@/components/places/unified-place-search";
+import { placeCategories } from "@/lib/place-categories";
 import type { DiscoveryPlace } from "@/lib/discovery";
-
-type LocationState = "idle" | "loading" | "available" | "denied" | "unavailable" | "error";
 
 const discoveryMapStyle: maplibregl.StyleSpecification = {
   version: 8,
@@ -46,9 +46,8 @@ export function DiscoveryMap({
 }) {
   const [places, setPlaces] = useState(initialPlaces);
   const [query, setQuery] = useState(initialQuery);
-  const [city, setCity] = useState(initialCity);
+  const [city] = useState(initialCity);
   const [category, setCategory] = useState(initialCategory);
-  const [locationState, setLocationState] = useState<LocationState>("idle");
   const [message, setMessage] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -134,13 +133,13 @@ export function DiscoveryMap({
       .addTo(map);
   }, [userLocation]);
 
-  async function refreshPlaces(next?: {
+  const refreshPlaces = useCallback(async (next?: {
     latitude?: number;
     longitude?: number;
     query?: string;
     city?: string;
     category?: string;
-  }) {
+  }) => {
     const params = new URLSearchParams();
     const nextQuery = next?.query ?? query;
     const nextCity = next?.city ?? city;
@@ -161,15 +160,13 @@ export function DiscoveryMap({
     if (!response.ok) throw new Error("Request failed");
     const payload = (await response.json()) as { places: DiscoveryPlace[] };
     setPlaces(payload.places);
-    setMessage(payload.places.length ? "" : "No places match that search yet.");
-  }
+    setMessage(payload.places.length ? "" : "We couldn't find that place in the current map view.");
+  }, [category, city, query, userLocation]);
 
   async function handleSearch(formData: FormData) {
-    const nextQuery = String(formData.get("q") ?? "").trim();
-    const nextCity = String(formData.get("city") ?? "").trim();
+    const nextQuery = query;
+    const nextCity = city;
     const nextCategory = String(formData.get("category") ?? "").trim();
-    setQuery(nextQuery);
-    setCity(nextCity);
     setCategory(nextCategory);
     setMessage("Searching places...");
 
@@ -180,88 +177,60 @@ export function DiscoveryMap({
     }
   }
 
-  function useLocation() {
-    if (!("geolocation" in navigator)) {
-      setLocationState("unavailable");
-      setMessage("Your browser does not support location. Search or browse instead.");
-      return;
-    }
+  const handleUnifiedQuery = useCallback(
+    async (nextQuery: string, coordinates: { latitude: number; longitude: number } | null) => {
+      setQuery(nextQuery);
+      setUserLocation(coordinates);
+      if (!nextQuery && !coordinates) return;
 
-    setLocationState("loading");
-    setMessage("Finding nearby places...");
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const coordinates = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setUserLocation(coordinates);
-
-        try {
-          await refreshPlaces(coordinates);
-          setLocationState("available");
-          setMessage("Showing places closest to the location shared by your browser.");
-        } catch {
-          setLocationState("error");
-          setMessage("Nearby places could not be refreshed right now. Search or browse instead.");
-        }
-      },
-      (error) => {
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationState("denied");
-          setMessage("Location access is off. Search or browse the map instead.");
-        } else {
-          setLocationState("unavailable");
-          setMessage("Your browser could not provide a location. Search or browse instead.");
-        }
-      },
-      { enableHighAccuracy: false, maximumAge: 1000 * 60 * 10, timeout: 10000 },
-    );
-  }
+      try {
+        await refreshPlaces({
+          query: nextQuery,
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude,
+        });
+      } catch {
+        setMessage("Search is unavailable right now. You can still browse the places already shown.");
+      }
+    },
+    [refreshPlaces],
+  );
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <div>
-        <form action={handleSearch} className="mb-3 grid gap-2 sm:grid-cols-[1fr_180px_160px_auto]">
+        <div className="mb-3">
+          <UnifiedPlaceSearch
+            existingAction="view"
+            initialQuery={initialQuery}
+            onQueryChange={handleUnifiedQuery}
+          />
+        </div>
+        <form action={handleSearch} className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
           <label className="relative">
-            <span className="sr-only">Search places</span>
-            <Search className="absolute left-3 top-3 text-muted" size={18} aria-hidden="true" />
-            <input
-              className="h-11 w-full rounded-md border border-line bg-white pl-10 pr-3"
-              defaultValue={initialQuery}
-              name="q"
-              placeholder="Search places"
-              type="search"
-            />
-          </label>
-          <label>
-            <span className="sr-only">City</span>
-            <input
-              className="h-11 w-full rounded-md border border-line bg-white px-3"
-              defaultValue={initialCity}
-              name="city"
-              placeholder="City"
-              type="search"
-            />
-          </label>
-          <label className="relative">
-            <span className="sr-only">Category</span>
+            <span className="sr-only">Category filter</span>
             <Filter className="absolute left-3 top-3 text-muted" size={18} aria-hidden="true" />
-            <input
+            <select
               className="h-11 w-full rounded-md border border-line bg-white pl-10 pr-3"
               defaultValue={initialCategory}
               name="category"
-              placeholder="Category"
-              type="search"
-            />
+            >
+              <option value="">All</option>
+              {placeCategories.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </label>
-          <Button type="submit">Search</Button>
+          <Button type="submit">Apply filter</Button>
         </form>
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Button disabled={locationState === "loading"} onClick={useLocation} type="button" variant="secondary">
-            <LocateFixed size={16} aria-hidden="true" />
-            {locationState === "loading" ? "Finding places..." : "Use my location"}
-          </Button>
+          {city ? (
+            <p className="rounded-md bg-white px-3 py-2 text-sm text-muted">
+              Showing places around {city}.
+            </p>
+          ) : null}
           {message ? (
             <p className="rounded-md bg-sky-soft px-3 py-2 text-sm text-brand-strong" role="status">
               {message}

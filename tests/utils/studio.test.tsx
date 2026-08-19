@@ -17,10 +17,15 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
   analyzePlaceAccessibility: vi.fn(),
   routerRefresh: vi.fn(),
+  after: vi.fn((callback: () => void | Promise<void>) => callback()),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+}));
+
+vi.mock("next/server", () => ({
+  after: mocks.after,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -154,7 +159,7 @@ describe("photo moderation queue", () => {
     expect(screen.getByRole("button", { name: "Approving..." })).toBeDisabled();
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Photo approved"));
     expect(screen.queryByText("Main Street Cafe")).not.toBeInTheDocument();
-    expect(mocks.routerRefresh).toHaveBeenCalled();
+    expect(mocks.routerRefresh).not.toHaveBeenCalled();
   });
 });
 
@@ -302,6 +307,7 @@ describe("photo moderation actions", () => {
     mocks.selectEq.mockReset();
     mocks.maybeSingle.mockReset();
     mocks.analyzePlaceAccessibility.mockReset();
+    mocks.after.mockClear();
     mocks.from.mockReset();
     mocks.requireUser.mockResolvedValue({ id: "moderator-1" });
     mocks.getCurrentProfile.mockResolvedValue({ id: "moderator-1", role: "moderator" });
@@ -317,6 +323,7 @@ describe("photo moderation actions", () => {
   it("approves photos and records audit fields", async () => {
     const formData = new FormData();
     formData.set("photoId", "photo-1");
+    mocks.maybeSingle.mockResolvedValueOnce({ data: { place_id: "place-1" } });
 
     const { approvePhotoAction } = await import("@/lib/studio-actions");
     await approvePhotoAction(formData);
@@ -330,6 +337,7 @@ describe("photo moderation actions", () => {
     );
     expect(mocks.updateEq).toHaveBeenCalledWith("id", "photo-1");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio/photos");
+    expect(mocks.after).toHaveBeenCalled();
   });
 
   it("rejects photos and keeps them out of public galleries", async () => {

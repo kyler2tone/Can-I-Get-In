@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Camera, Flag, MapPinned, MessageSquareWarning, Settings, UsersRound } from "lucide-react";
 
@@ -11,6 +14,18 @@ const studioNavItems = [
 ];
 
 export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: number }) {
+  const [reviewedCount, setReviewedCount] = useState(0);
+  const pendingPhotos = Math.max(0, pendingPhotoCount - reviewedCount);
+
+  useEffect(() => {
+    function onReviewed() {
+      setReviewedCount((count) => count + 1);
+    }
+
+    window.addEventListener("studio:pending-photo-reviewed", onReviewed);
+    return () => window.removeEventListener("studio:pending-photo-reviewed", onReviewed);
+  }, []);
+
   return (
     <nav aria-label="Studio tools" className="border border-line bg-surface p-3">
       <Link className="block rounded-md px-3 py-2 text-sm font-semibold hover:bg-white" href="/studio">
@@ -29,12 +44,12 @@ export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: numbe
               <Icon size={16} aria-hidden="true" />
               <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                 <span>{item.label}</span>
-                {item.href === "/studio/photos" && pendingPhotoCount > 0 ? (
+                {item.href === "/studio/photos" && pendingPhotos > 0 ? (
                   <span
                     className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white"
-                    aria-label={`${pendingPhotoCount} photos awaiting review`}
+                    aria-label={`${pendingPhotos} photos awaiting review`}
                   >
-                    {pendingPhotoCount}
+                    {pendingPhotos}
                   </span>
                 ) : null}
               </span>

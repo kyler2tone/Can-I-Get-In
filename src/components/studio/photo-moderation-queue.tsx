@@ -3,7 +3,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { approvePhotoAction, rejectPhotoAction } from "@/lib/studio-actions";
 import type { StudioPhoto } from "@/lib/studio";
 
@@ -15,10 +14,9 @@ type Toast = {
 
 export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
   const [queue, setQueue] = useState(photos);
-  const [busyAction, setBusyAction] = useState<{ photoId: string; action: "approve" | "reject" } | null>(null);
+  const [busyAction, setBusyAction] = useState<Record<string, "approve" | "reject">>({});
   const [toast, setToast] = useState<Toast | null>(null);
   const [, startTransition] = useTransition();
-  const router = useRouter();
 
   useEffect(() => {
     if (!toast) return;
@@ -27,7 +25,8 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
   }, [toast]);
 
   function reviewPhoto(photoId: string, action: "approve" | "reject") {
-    setBusyAction({ photoId, action });
+    if (busyAction[photoId]) return;
+    setBusyAction((current) => ({ ...current, [photoId]: action }));
     const formData = new FormData();
     formData.set("photoId", photoId);
 
@@ -40,7 +39,7 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
 
         setQueue((current) => current.filter((photo) => photo.id !== result.photoId));
         setToast({ id: Date.now(), message: result.message, tone: "success" });
-        router.refresh();
+        window.dispatchEvent(new CustomEvent("studio:pending-photo-reviewed"));
       } catch {
         setToast({
           id: Date.now(),
@@ -48,7 +47,11 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
           tone: "error",
         });
       } finally {
-        setBusyAction(null);
+        setBusyAction((current) => {
+          const next = { ...current };
+          delete next[photoId];
+          return next;
+        });
       }
     });
   }
@@ -72,7 +75,8 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
       <ToastMessage toast={toast} />
       <div className="grid gap-5">
         {queue.map((photo) => {
-          const isBusy = busyAction?.photoId === photo.id;
+          const action = busyAction[photo.id];
+          const isBusy = Boolean(action);
 
           return (
             <article className="border border-line bg-surface" key={photo.id}>
@@ -135,7 +139,7 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
                       onClick={() => reviewPhoto(photo.id, "approve")}
                       type="button"
                     >
-                      {busyAction?.photoId === photo.id && busyAction.action === "approve" ? "Approving..." : "Approve"}
+                      {action === "approve" ? "Approving..." : "Approve"}
                     </button>
                     <button
                       className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 py-2 text-sm font-semibold text-rose-900 transition hover:border-rose-300 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:active:translate-y-0"
@@ -143,7 +147,7 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
                       onClick={() => reviewPhoto(photo.id, "reject")}
                       type="button"
                     >
-                      {busyAction?.photoId === photo.id && busyAction.action === "reject" ? "Rejecting..." : "Reject"}
+                      {action === "reject" ? "Rejecting..." : "Reject"}
                     </button>
                   </div>
                 </div>

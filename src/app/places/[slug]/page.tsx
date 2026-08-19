@@ -25,8 +25,6 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
 
   if (!place) notFound();
 
-  const photos = await getApprovedPlacePhotos(place.id);
-
   return (
     <PageShell>
       <section className="mx-auto max-w-6xl px-4 py-8">
@@ -47,7 +45,9 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
             <Suspense fallback={<AccessibilityGlanceSkeleton />}>
               <PlaceAccessibility placeId={place.id} />
             </Suspense>
-            <PhotoGallery photos={photos} placeSlug={slug} />
+            <Suspense fallback={<PhotoGallerySkeleton />}>
+              <PlacePhotoGallery placeId={place.id} placeSlug={slug} />
+            </Suspense>
           </article>
           <aside className="space-y-5">
             <div className="border border-line bg-surface p-5">
@@ -88,6 +88,11 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
       </section>
     </PageShell>
   );
+}
+
+async function PlacePhotoGallery({ placeId, placeSlug }: { placeId: string; placeSlug: string }) {
+  const photos = await getApprovedPlacePhotos(placeId);
+  return <PhotoGallery photos={photos} placeSlug={placeSlug} />;
 }
 
 async function PlaceAccessibility({ placeId }: { placeId: string }) {
@@ -134,6 +139,21 @@ function AccessibilityGlanceSkeleton() {
       <p className="sr-only" role="status">
         Loading accessibility details.
       </p>
+    </section>
+  );
+}
+
+function PhotoGallerySkeleton() {
+  return (
+    <section className="mt-5 border border-line bg-surface p-5" aria-labelledby="photo-gallery-loading">
+      <h2 id="photo-gallery-loading" className="text-xl font-semibold">
+        Community photos
+      </h2>
+      <p className="mt-2 text-sm text-muted">Loading community photos.</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2" aria-hidden="true">
+        <div className="h-52 animate-pulse rounded-md bg-white" />
+        <div className="h-52 animate-pulse rounded-md bg-white" />
+      </div>
     </section>
   );
 }

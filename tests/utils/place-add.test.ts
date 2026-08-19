@@ -212,6 +212,8 @@ describe("Google Places transformation", () => {
   it("maps Google types into the CIGI category taxonomy", () => {
     expect(categoryFromGoogleTypes(["restaurant"])).toBe("Restaurant");
     expect(categoryFromGoogleTypes(["coffee_shop"])).toBe("Coffee shop");
+    expect(categoryFromGoogleTypes(["store", "cafe"])).toBe("Coffee shop");
+    expect(categoryFromGoogleTypes(["store", "restaurant"])).toBe("Restaurant");
     expect(categoryFromGoogleTypes(["library"])).toBe("Library");
     expect(categoryFromGoogleTypes(["tourist_attraction"])).toBe("Attraction");
     expect(categoryFromGoogleTypes(["unknown_type"])).toBe("Other");

@@ -5,9 +5,9 @@ import {
   Hotel,
   Music2,
   ShoppingBag,
-  Sparkles,
   Trees,
   Utensils,
+  MapPinned,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,7 +25,7 @@ const categories = [
   { label: "Hotels", icon: Hotel, color: "text-[#7b4ce2]", href: "/map?category=Hotel" },
   { label: "Attractions", icon: Camera, color: "text-[#00a8b5]", href: "/map?category=Attraction" },
   { label: "Nightlife", icon: Music2, color: "text-[#f5a400]", href: "/map?category=Entertainment" },
-  { label: "More", icon: Sparkles, color: "text-muted", href: "/map" },
+  { label: "All", icon: MapPinned, color: "text-muted", href: "/map" },
 ];
 
 export default async function Home() {
