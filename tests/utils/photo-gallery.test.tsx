@@ -35,6 +35,17 @@ describe("public photo lightbox", () => {
     expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument();
   });
 
+  it("closes from mobile pointer backdrop without closing when the image is tapped", () => {
+    render(<PhotoGallery photos={photos} placeSlug="example-place" />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Entrance Overview accessibility photo" })[0]);
+    fireEvent.pointerDown(screen.getByAltText("Entrance Overview accessibility photo enlarged"));
+    expect(screen.getByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("dialog", { name: "Photo viewer" }));
+    expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument();
+  });
+
   it("does not show delete controls in the public lightbox", async () => {
     render(<PhotoGallery photos={photos} placeSlug="example-place" />);
     fireEvent.click(screen.getAllByRole("button", { name: "Entrance Overview accessibility photo" })[0]);

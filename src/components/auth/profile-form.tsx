@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useActionState } from "react";
 import { updateProfileAction, type ActionState } from "@/lib/actions";
 import { AvatarUploader } from "@/components/auth/avatar-uploader";
 import { Button } from "@/components/ui/button";
 
 const initialState: ActionState = { status: "idle", message: "" };
+const bioMaxLength = 500;
 
 type Profile = {
   id: string;
@@ -18,6 +20,7 @@ type Profile = {
 
 export function ProfileForm({ profile }: { profile: Profile | null }) {
   const [state, action, pending] = useActionState(updateProfileAction, initialState);
+  const [bio, setBio] = useState(profile?.bio ?? "");
 
   return (
     <form action={action} className="space-y-5 border border-line bg-surface p-5">
@@ -42,9 +45,14 @@ export function ProfileForm({ profile }: { profile: Profile | null }) {
         <textarea
           className="mt-1 min-h-28 w-full rounded-md border border-line bg-white px-3 py-2"
           name="bio"
-          defaultValue={profile?.bio ?? ""}
-          maxLength={280}
+          value={bio}
+          onChange={(event) => setBio(event.target.value)}
+          maxLength={bioMaxLength}
+          aria-describedby="profile-bio-count"
         />
+        <span className="mt-1 block text-xs text-muted" id="profile-bio-count" aria-live="polite">
+          {bio.length} / {bioMaxLength}
+        </span>
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">

@@ -42,8 +42,8 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">Start browsing</p>
-            <h2 className="mt-2 text-3xl font-black text-foreground sm:text-4xl">Explore by category</h2>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">Start Browsing</p>
+            <h2 className="mt-2 text-3xl font-black text-foreground sm:text-4xl">Explore by Category</h2>
           </div>
           <Link
             className="hidden items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold text-brand-strong transition hover:bg-sky-soft sm:inline-flex"

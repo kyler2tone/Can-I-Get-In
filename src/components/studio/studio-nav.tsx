@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Camera, Flag, MapPinned, MessageSquareWarning, Settings, UsersRound } from "lucide-react";
+import type { StudioCounts } from "@/lib/studio";
 
 const studioNavItems = [
   { href: "/studio/photos", label: "Photo Moderation", icon: Camera, enabled: true },
@@ -13,17 +14,32 @@ const studioNavItems = [
   { href: "/studio/settings", label: "Settings", icon: Settings, enabled: false },
 ];
 
-export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: number }) {
-  const [reviewedCount, setReviewedCount] = useState(0);
-  const pendingPhotos = Math.max(0, pendingPhotoCount - reviewedCount);
+export function StudioNav({
+  counts = { pendingPhotos: 0, pendingPlaces: 0, pendingUpdates: 0 },
+}: {
+  counts?: StudioCounts;
+}) {
+  const [localCounts, setLocalCounts] = useState(counts);
 
   useEffect(() => {
-    function onReviewed() {
-      setReviewedCount((count) => count + 1);
+    function onReviewed(event: Event) {
+      const queue = event instanceof CustomEvent ? event.detail?.queue : null;
+      setLocalCounts((current) => {
+        if (queue === "photos") {
+          return { ...current, pendingPhotos: Math.max(0, current.pendingPhotos - 1) };
+        }
+        if (queue === "places") {
+          return { ...current, pendingPlaces: Math.max(0, current.pendingPlaces - 1) };
+        }
+        if (queue === "updates") {
+          return { ...current, pendingUpdates: Math.max(0, current.pendingUpdates - 1) };
+        }
+        return current;
+      });
     }
 
-    window.addEventListener("studio:pending-photo-reviewed", onReviewed);
-    return () => window.removeEventListener("studio:pending-photo-reviewed", onReviewed);
+    window.addEventListener("studio:queue-reviewed", onReviewed);
+    return () => window.removeEventListener("studio:queue-reviewed", onReviewed);
   }, []);
 
   return (
@@ -44,12 +60,12 @@ export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: numbe
               <Icon size={16} aria-hidden="true" />
               <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
                 <span>{item.label}</span>
-                {item.href === "/studio/photos" && pendingPhotos > 0 ? (
+                {pendingCount(item.href, localCounts) > 0 ? (
                   <span
                     className="rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white"
-                    aria-label={`${pendingPhotos} photos awaiting review`}
+                    aria-label={`${pendingCount(item.href, localCounts)} items awaiting review`}
                   >
-                    {pendingPhotos}
+                    {pendingCount(item.href, localCounts)}
                   </span>
                 ) : null}
               </span>
@@ -68,4 +84,11 @@ export function StudioNav({ pendingPhotoCount = 0 }: { pendingPhotoCount?: numbe
       </div>
     </nav>
   );
+}
+
+function pendingCount(href: string, counts: StudioCounts) {
+  if (href === "/studio/photos") return counts.pendingPhotos;
+  if (href === "/studio/places") return counts.pendingPlaces;
+  if (href === "/studio/updates") return counts.pendingUpdates;
+  return 0;
 }

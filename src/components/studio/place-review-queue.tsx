@@ -1,4 +1,7 @@
+"use client";
+
 /* eslint-disable @next/next/no-img-element */
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import {
   approvePlaceAction,
@@ -7,21 +10,103 @@ import {
 } from "@/lib/studio-actions";
 import type { StudioPlace } from "@/lib/studio";
 
+type Toast = {
+  id: number;
+  message: string;
+  tone: "success" | "error";
+};
+
 export function PlaceReviewQueue({ places }: { places: StudioPlace[] }) {
-  if (!places.length) {
+  const [queue, setQueue] = useState(places);
+  const [busyAction, setBusyAction] = useState<Record<string, "approve" | "reject" | "correct">>({});
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!toast) return;
+    const handle = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(handle);
+  }, [toast]);
+
+  function reviewPlace(placeId: string, action: "approve" | "reject", formData?: FormData) {
+    if (busyAction[placeId]) return;
+    setBusyAction((current) => ({ ...current, [placeId]: action }));
+    const payload = formData ?? new FormData();
+    payload.set("placeId", placeId);
+
+    startTransition(async () => {
+      try {
+        const result =
+          action === "approve"
+            ? await approvePlaceAction(payload)
+            : await rejectPlaceAction(payload);
+
+        setQueue((current) => current.filter((place) => place.id !== result.placeId));
+        setToast({ id: Date.now(), message: result.message, tone: "success" });
+        window.dispatchEvent(new CustomEvent("studio:queue-reviewed", { detail: { queue: "places" } }));
+      } catch {
+        setToast({
+          id: Date.now(),
+          message: action === "approve" ? "Couldn't approve place. Try again." : "Couldn't reject place. Try again.",
+          tone: "error",
+        });
+      } finally {
+        setBusyAction((current) => {
+          const next = { ...current };
+          delete next[placeId];
+          return next;
+        });
+      }
+    });
+  }
+
+  function correctAndApprove(placeId: string, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busyAction[placeId]) return;
+    setBusyAction((current) => ({ ...current, [placeId]: "correct" }));
+    const payload = new FormData(event.currentTarget);
+
+    startTransition(async () => {
+      try {
+        const result = await correctAndApprovePlaceAction(payload);
+        setQueue((current) => current.filter((place) => place.id !== result.placeId));
+        setToast({ id: Date.now(), message: result.message, tone: "success" });
+        window.dispatchEvent(new CustomEvent("studio:queue-reviewed", { detail: { queue: "places" } }));
+      } catch {
+        setToast({ id: Date.now(), message: "Couldn't save place review. Try again.", tone: "error" });
+      } finally {
+        setBusyAction((current) => {
+          const next = { ...current };
+          delete next[placeId];
+          return next;
+        });
+      }
+    });
+  }
+
+  if (!queue.length) {
     return (
-      <div className="border border-dashed border-line bg-surface p-6">
-        <h2 className="text-xl font-semibold">No places are awaiting review.</h2>
-        <p className="mt-2 text-sm text-muted">
-          Manual place submissions will appear here when they need a moderator.
-        </p>
-      </div>
+      <>
+        <ToastMessage toast={toast} />
+        <div className="border border-dashed border-line bg-surface p-6">
+          <h2 className="text-xl font-semibold">No places are awaiting review.</h2>
+          <p className="mt-2 text-sm text-muted">
+            Manual place submissions will appear here when they need a moderator.
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="grid gap-5">
-      {places.map((place) => (
+    <>
+      <ToastMessage toast={toast} />
+      <div className="grid gap-5">
+      {queue.map((place) => {
+        const action = busyAction[place.id];
+        const isBusy = Boolean(action);
+
+        return (
         <article className="border border-line bg-surface p-5" key={place.id}>
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
             <div>
@@ -81,25 +166,23 @@ export function PlaceReviewQueue({ places }: { places: StudioPlace[] }) {
               </section>
             </div>
             <div className="space-y-3">
-              <form action={approvePlaceAction}>
-                <input name="placeId" type="hidden" value={place.id} />
-                <button
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-strong"
-                  type="submit"
-                >
-                  Approve
-                </button>
-              </form>
-              <form action={rejectPlaceAction}>
-                <input name="placeId" type="hidden" value={place.id} />
-                <button
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 py-2 text-sm font-semibold text-rose-900 transition hover:border-rose-300"
-                  type="submit"
-                >
-                  Reject
-                </button>
-              </form>
-              <form action={correctAndApprovePlaceAction} className="space-y-3 border border-line bg-white p-3">
+              <button
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-brand bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy}
+                onClick={() => reviewPlace(place.id, "approve")}
+                type="button"
+              >
+                {action === "approve" ? "Approving..." : "Approve"}
+              </button>
+              <button
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-line bg-white px-4 py-2 text-sm font-semibold text-rose-900 transition hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy}
+                onClick={() => reviewPlace(place.id, "reject")}
+                type="button"
+              >
+                {action === "reject" ? "Rejecting..." : "Reject"}
+              </button>
+              <form className="space-y-3 border border-line bg-white p-3" onSubmit={(event) => correctAndApprove(place.id, event)}>
                 <h3 className="font-semibold">Correct and approve</h3>
                 <input name="placeId" type="hidden" value={place.id} />
                 <label className="block">
@@ -127,16 +210,39 @@ export function PlaceReviewQueue({ places }: { places: StudioPlace[] }) {
                   />
                 </label>
                 <button
-                  className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-semibold transition hover:border-brand"
+                  className="inline-flex min-h-10 w-full items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-semibold transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isBusy}
                   type="submit"
                 >
-                  Save and approve
+                  {action === "correct" ? "Approving..." : "Save and approve"}
                 </button>
               </form>
             </div>
           </div>
         </article>
-      ))}
+        );
+      })}
+      </div>
+    </>
+  );
+}
+
+function ToastMessage({ toast }: { toast: Toast | null }) {
+  return (
+    <div className="fixed right-4 top-20 z-50" aria-live="polite" aria-atomic="true">
+      {toast ? (
+        <p
+          className={`rounded-md border px-4 py-3 text-sm font-semibold shadow-lg ${
+            toast.tone === "success"
+              ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+              : "border-rose-200 bg-rose-50 text-rose-950"
+          }`}
+          key={toast.id}
+          role="status"
+        >
+          {toast.message}
+        </p>
+      ) : null}
     </div>
   );
 }

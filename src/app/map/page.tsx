@@ -9,12 +9,13 @@ export const metadata = {
 export default async function MapPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; city?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; city?: string; state?: string; category?: string }>;
 }) {
-  const { q = "", city = "", category = "" } = await searchParams;
+  const { q = "", city = "", state = "", category = "" } = await searchParams;
   const places = await findDiscoverablePlaces({
     query: q,
     city,
+    state,
     category,
     limit: 60,
   });
@@ -32,6 +33,7 @@ export default async function MapPage({
         <DiscoveryMap
           initialCategory={category}
           initialCity={city}
+          initialState={state}
           initialPlaces={places}
           initialQuery={q}
         />

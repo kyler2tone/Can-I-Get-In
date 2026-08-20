@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     coordinates,
     query: searchParams.get("q") ?? "",
     city: searchParams.get("city") ?? "",
+    state: searchParams.get("state") ?? "",
     category: searchParams.get("category") ?? "",
     limit: 60,
   });

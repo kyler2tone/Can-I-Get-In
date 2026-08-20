@@ -204,6 +204,7 @@ describe("discovery UI states", () => {
             longitude: -103.231014,
             placeCount: 2,
             approvedPhotoCount: 4,
+            imageUrl: null,
           },
         ]}
       />,

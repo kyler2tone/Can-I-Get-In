@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { requireCompletedProfile } from "@/lib/auth";
 import {
   contributorNotesMaxLength,
   contributorObservationSchema,
 } from "@/lib/accessibility-validation";
+import { analyzePlaceAccessibility } from "@/lib/openai-accessibility";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const contributionObservationSchema = z.object({
@@ -60,6 +62,21 @@ export async function POST(request: Request) {
       { message: "Accessibility observations could not be saved. Please try again." },
       { status: 400 },
     );
+  }
+
+  try {
+    after(async () => {
+      try {
+        await analyzePlaceAccessibility(parsed.data.placeId);
+      } catch {
+        console.warn("[accessibility-analysis]", {
+          placeId: parsed.data.placeId,
+          status: "failed",
+        });
+      }
+    });
+  } catch {
+    void analyzePlaceAccessibility(parsed.data.placeId).catch(() => undefined);
   }
 
   return NextResponse.json({ message: "Contribution saved." });

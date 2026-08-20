@@ -1,4 +1,5 @@
 import { ArrowRight, MapPin } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { DiscoveryCity } from "@/lib/discovery";
 
@@ -9,12 +10,12 @@ export function ExploreCities({ cities }: { cities: DiscoveryCity[] }) {
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand">Destinations</p>
           <h2 className="mt-2 text-2xl font-black text-foreground min-[375px]:text-3xl sm:text-4xl">
-            Explore cities
+            Explore Cities
           </h2>
         </div>
         <Link
           className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1.5 text-sm font-bold text-brand-strong transition hover:bg-sky-soft min-[375px]:gap-2 min-[375px]:px-3"
-          href="/map"
+          href="/cities"
         >
           View all cities
           <ArrowRight size={16} aria-hidden="true" />
@@ -24,22 +25,30 @@ export function ExploreCities({ cities }: { cities: DiscoveryCity[] }) {
         <div className="-mx-4 mt-6 flex gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-6">
           {cities.map((city) => (
             <Link
-              className="group min-w-48 rounded-[1.6rem] border border-line bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand hover:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand lg:first:col-span-2"
+              className="group min-w-48 overflow-hidden rounded-[1.6rem] border border-line bg-white shadow-sm transition hover:-translate-y-1 hover:border-brand hover:shadow-lg focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand lg:first:col-span-2"
               href={`/map?city=${encodeURIComponent(`${city.name}, ${city.state}`)}`}
               key={city.slug}
             >
-              <span className="grid size-12 place-items-center rounded-2xl bg-sky-soft text-brand-strong">
-                <MapPin size={22} aria-hidden="true" />
-              </span>
-              <h3 className="mt-4 font-black">{city.name}</h3>
-              <p className="mt-1 text-sm text-muted">{city.state}</p>
-              <p className="mt-3 text-sm font-bold text-brand-strong">
-                {city.placeCount} {city.placeCount === 1 ? "place" : "places"}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                {city.approvedPhotoCount} approved{" "}
-                {city.approvedPhotoCount === 1 ? "photo" : "photos"}
-              </p>
+              <div className="relative h-28 bg-sky-soft">
+                {city.imageUrl ? (
+                  <Image alt="" className="object-cover" fill sizes="(min-width: 1024px) 16vw, 192px" src={city.imageUrl} />
+                ) : (
+                  <span className="grid h-full place-items-center text-brand-strong">
+                    <MapPin size={28} aria-hidden="true" />
+                  </span>
+                )}
+              </div>
+              <div className="p-5">
+                <h3 className="font-black">{city.name}</h3>
+                <p className="mt-1 text-sm text-muted">{city.state}</p>
+                <p className="mt-3 text-sm font-bold text-brand-strong">
+                  {city.placeCount} {city.placeCount === 1 ? "place" : "places"}
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  {city.approvedPhotoCount} approved{" "}
+                  {city.approvedPhotoCount === 1 ? "photo" : "photos"}
+                </p>
+              </div>
             </Link>
           ))}
         </div>

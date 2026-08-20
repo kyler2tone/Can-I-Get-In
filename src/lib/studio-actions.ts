@@ -15,11 +15,11 @@ export async function rejectPhotoAction(formData: FormData) {
 }
 
 export async function approvePlaceAction(formData: FormData) {
-  await reviewPlace(formData, "published");
+  return reviewPlace(formData, "published");
 }
 
 export async function rejectPlaceAction(formData: FormData) {
-  await reviewPlace(formData, "hidden");
+  return reviewPlace(formData, "hidden");
 }
 
 export async function correctAndApprovePlaceAction(formData: FormData) {
@@ -63,14 +63,21 @@ export async function correctAndApprovePlaceAction(formData: FormData) {
   revalidatePath("/studio/places");
   revalidatePath("/map");
   revalidatePath("/");
+
+  return {
+    ok: true,
+    placeId,
+    status: "published" as const,
+    message: "Place approved",
+  };
 }
 
 export async function acceptUpdateRequestAction(formData: FormData) {
-  await reviewUpdateRequest(formData, "accepted");
+  return reviewUpdateRequest(formData, "accepted");
 }
 
 export async function rejectUpdateRequestAction(formData: FormData) {
-  await reviewUpdateRequest(formData, "rejected");
+  return reviewUpdateRequest(formData, "rejected");
 }
 
 async function reviewPhoto(formData: FormData, status: "approved" | "rejected") {
@@ -166,6 +173,13 @@ async function reviewPlace(formData: FormData, status: "published" | "hidden") {
   if (place?.slug) {
     revalidatePath(`/places/${place.slug}`);
   }
+
+  return {
+    ok: true,
+    placeId,
+    status,
+    message: status === "published" ? "Place approved" : "Place rejected",
+  };
 }
 
 async function reviewUpdateRequest(formData: FormData, status: "accepted" | "rejected") {
@@ -207,4 +221,11 @@ async function reviewUpdateRequest(formData: FormData, status: "accepted" | "rej
   }
 
   revalidatePath("/studio/updates");
+
+  return {
+    ok: true,
+    updateId,
+    status,
+    message: status === "accepted" ? "Update accepted" : "Update rejected",
+  };
 }

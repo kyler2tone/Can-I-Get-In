@@ -40,6 +40,7 @@ export type DiscoveryCity = {
   longitude: number;
   placeCount: number;
   approvedPhotoCount: number;
+  imageUrl: string | null;
 };
 
 export type DiscoveryStats = {
@@ -81,6 +82,7 @@ type PhotoRow = {
   id: string;
   place_id: string;
   storage_path: string;
+  category: string | null;
   created_at: string;
 };
 
@@ -97,6 +99,7 @@ export type DiscoveryQuery = {
   coordinates?: Coordinates | null;
   query?: string;
   city?: string;
+  state?: string;
   category?: string;
   limit?: number;
 };
@@ -105,6 +108,7 @@ export async function findDiscoverablePlaces({
   coordinates = null,
   query = "",
   city = "",
+  state = "",
   category = "",
   limit = defaultDiscoveryLimit,
 }: DiscoveryQuery = {}) {
@@ -127,6 +131,7 @@ export async function findDiscoverablePlaces({
 
   const normalizedQuery = normalizeSearch(query);
   const normalizedCity = normalizeSearch(city);
+  const normalizedState = normalizeSearch(state);
   const normalizedCategoryFilter = normalizedCategory
     ? normalizeSearch(normalizePlaceCategory(normalizedCategory))
     : "";
@@ -146,6 +151,11 @@ export async function findDiscoverablePlaces({
       return normalizeSearch(`${place.city} ${place.state}`).includes(normalizedCity);
     })
     .filter((place) => {
+      if (!normalizedState) return true;
+
+      return normalizeSearch(place.state) === normalizedState;
+    })
+    .filter((place) => {
       if (!normalizedCategoryFilter) return true;
 
       return normalizeSearch(place.category ?? "").includes(normalizedCategoryFilter);
@@ -159,19 +169,39 @@ export async function findDiscoverablePlaces({
   return rankDiscoveryPlaces(withPhotos, Boolean(coordinates)).slice(0, limit);
 }
 
+export async function getCitiesGroupedByState() {
+  const cities = await getDiscoveryCities(100);
+  const grouped = new Map<string, DiscoveryCity[]>();
+  for (const city of cities) {
+    grouped.set(city.state, [...(grouped.get(city.state) ?? []), city]);
+  }
+
+  return [...grouped.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([state, items]) => ({
+      state,
+      cities: items.sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+}
+
 export async function getDiscoveryCities(limit = 6): Promise<DiscoveryCity[]> {
   const supabase = await getSupabaseServerClient();
   const [{ data: cities }, { data: places }, { data: photos }] = await Promise.all([
     supabase.from("cities").select("id, name, state, slug, latitude, longitude"),
     supabase.from("places").select("id, city_id").eq("publish_status", "published"),
-    supabase.from("place_photos").select("id, place_id").eq("moderation_status", "approved"),
+    supabase
+      .from("place_photos")
+      .select("id, place_id, storage_path, category, created_at")
+      .eq("moderation_status", "approved")
+      .order("created_at", { ascending: true }),
   ]);
 
   const cityRows = (cities ?? []) as CityRow[];
   const placeRows = (places ?? []) as Array<{ id: string; city_id: string }>;
-  const photoRows = (photos ?? []) as Array<{ id: string; place_id: string }>;
+  const photoRows = (photos ?? []) as PhotoRow[];
   const placeToCity = new Map(placeRows.map((place) => [place.id, place.city_id]));
   const counts = new Map<string, { places: number; photos: number }>();
+  const photosByCity = new Map<string, PhotoRow[]>();
 
   for (const place of placeRows) {
     const count = counts.get(place.city_id) ?? { places: 0, photos: 0 };
@@ -185,13 +215,15 @@ export async function getDiscoveryCities(limit = 6): Promise<DiscoveryCity[]> {
     const count = counts.get(cityId) ?? { places: 0, photos: 0 };
     count.photos += 1;
     counts.set(cityId, count);
+    photosByCity.set(cityId, [...(photosByCity.get(cityId) ?? []), photo]);
   }
 
-  return cityRows
+  const citySummaries = await Promise.all(cityRows
     .map((city) => {
       const count = counts.get(city.id) ?? { places: 0, photos: 0 };
 
       return {
+        id: city.id,
         name: city.name,
         state: city.state,
         slug: city.slug,
@@ -203,7 +235,22 @@ export async function getDiscoveryCities(limit = 6): Promise<DiscoveryCity[]> {
     })
     .filter((city) => city.placeCount > 0 && validCoordinates(city))
     .sort((a, b) => b.placeCount - a.placeCount || b.approvedPhotoCount - a.approvedPhotoCount)
-    .slice(0, limit);
+    .slice(0, limit)
+    .map(async (city) => ({
+      ...city,
+      imageUrl: await signedPreferredPhotoUrl(photosByCity.get(city.id) ?? []),
+    })));
+
+  return citySummaries.map((city) => ({
+    name: city.name,
+    state: city.state,
+    slug: city.slug,
+    latitude: city.latitude,
+    longitude: city.longitude,
+    placeCount: city.placeCount,
+    approvedPhotoCount: city.approvedPhotoCount,
+    imageUrl: city.imageUrl,
+  }));
 }
 
 export async function getDiscoveryStats(): Promise<DiscoveryStats> {
@@ -305,7 +352,7 @@ async function attachApprovedPhotoData(
   const placeIds = places.map((place) => place.id);
   const { data } = await supabase
     .from("place_photos")
-    .select("id, place_id, storage_path, created_at")
+    .select("id, place_id, storage_path, category, created_at")
     .eq("moderation_status", "approved")
     .in("place_id", placeIds)
     .order("created_at", { ascending: false });
@@ -318,15 +365,7 @@ async function attachApprovedPhotoData(
   return Promise.all(
     places.map(async (place) => {
       const photos = photosByPlace.get(place.id) ?? [];
-      const thumbnail = photos[0];
-      let thumbnailUrl: string | null = null;
-
-      if (thumbnail) {
-        const { data: signed } = await supabase.storage
-          .from("place-photos")
-          .createSignedUrl(objectPathFromDatabasePath(thumbnail.storage_path), 60 * 30);
-        thumbnailUrl = signed?.signedUrl ?? null;
-      }
+      const thumbnailUrl = await signedPreferredPhotoUrl(photos);
 
       return {
         ...place,
@@ -335,6 +374,19 @@ async function attachApprovedPhotoData(
       };
     }),
   );
+}
+
+async function signedPreferredPhotoUrl(photos: PhotoRow[]) {
+  const thumbnail =
+    photos.find((photo) => photo.category === "entrance_overview") ??
+    photos[0];
+  if (!thumbnail) return null;
+
+  const supabase = await getSupabaseServerClient();
+  const { data: signed } = await supabase.storage
+    .from("place-photos")
+    .createSignedUrl(objectPathFromDatabasePath(thumbnail.storage_path), 60 * 30);
+  return signed?.signedUrl ?? null;
 }
 
 function normalizeSearch(value: string) {

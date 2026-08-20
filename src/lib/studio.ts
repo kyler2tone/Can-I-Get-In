@@ -111,17 +111,31 @@ export type StudioUpdateRequest = {
 
 export type StudioCounts = {
   pendingPhotos: number;
+  pendingPlaces: number;
+  pendingUpdates: number;
 };
 
 export async function getStudioCounts(): Promise<StudioCounts> {
   const supabase = await getSupabaseServerClient();
-  const { count } = await supabase
-    .from("place_photos")
-    .select("id", { count: "exact", head: true })
-    .eq("moderation_status", "pending");
+  const [photos, places, updates] = await Promise.all([
+    supabase
+      .from("place_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("moderation_status", "pending"),
+    supabase
+      .from("places")
+      .select("id", { count: "exact", head: true })
+      .eq("publish_status", "pending_review"),
+    supabase
+      .from("place_update_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+  ]);
 
   return {
-    pendingPhotos: count ?? 0,
+    pendingPhotos: photos.count ?? 0,
+    pendingPlaces: places.count ?? 0,
+    pendingUpdates: updates.count ?? 0,
   };
 }
 

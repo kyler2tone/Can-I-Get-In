@@ -49,7 +49,7 @@ export function PopularNearYou({ initialPlaces }: { initialPlaces: DiscoveryPlac
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-black text-foreground min-[375px]:text-3xl sm:text-4xl">
-            Popular near you
+            Popular Near You
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
             Ranked by nearby distance when you share your location, then by approved photo

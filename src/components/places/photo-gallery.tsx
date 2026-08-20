@@ -180,9 +180,14 @@ function PhotoLightbox({
       aria-modal="true"
       className="fixed inset-0 z-50 bg-black/82 px-3 py-4 text-white sm:px-6"
       onMouseDown={onClose}
+      onPointerDown={onClose}
       role="dialog"
     >
-      <div className="mx-auto flex h-full max-w-6xl flex-col" onMouseDown={(event) => event.stopPropagation()}>
+      <div
+        className="mx-auto flex h-full max-w-6xl flex-col"
+        onMouseDown={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">{photo.categoryLabel}</p>

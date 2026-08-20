@@ -12,7 +12,7 @@ export default async function StudioLayout({ children }: { children: ReactNode }
     <PageShell>
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 md:grid-cols-[240px_minmax(0,1fr)]">
         <aside>
-          <StudioNav pendingPhotoCount={counts.pendingPhotos} />
+          <StudioNav counts={counts} />
         </aside>
         <div>{children}</div>
       </section>

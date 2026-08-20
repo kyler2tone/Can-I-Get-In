@@ -37,16 +37,19 @@ export function DiscoveryMap({
   initialPlaces,
   initialQuery = "",
   initialCity = "",
+  initialState = "",
   initialCategory = "",
 }: {
   initialPlaces: DiscoveryPlace[];
   initialQuery?: string;
   initialCity?: string;
+  initialState?: string;
   initialCategory?: string;
 }) {
   const [places, setPlaces] = useState(initialPlaces);
   const [query, setQuery] = useState(initialQuery);
   const [city] = useState(initialCity);
+  const [stateContext] = useState(initialState);
   const [category, setCategory] = useState(initialCategory);
   const [message, setMessage] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -138,13 +141,15 @@ export function DiscoveryMap({
     longitude?: number;
     query?: string;
     city?: string;
+    state?: string;
     category?: string;
   }) => {
     const params = new URLSearchParams();
     const nextQuery = next?.query ?? query;
     const nextCity = next?.city ?? city;
+    const nextState = next?.state ?? stateContext;
     const nextCategory = next?.category ?? category;
-    const scopedToCity = Boolean(nextCity);
+    const scopedToCity = Boolean(nextCity || nextState);
     const latitude = scopedToCity ? undefined : next?.latitude ?? userLocation?.latitude;
     const longitude = scopedToCity ? undefined : next?.longitude ?? userLocation?.longitude;
 
@@ -154,6 +159,7 @@ export function DiscoveryMap({
     }
     if (nextQuery) params.set("q", nextQuery);
     if (nextCity) params.set("city", nextCity);
+    if (nextState) params.set("state", nextState);
     if (nextCategory) params.set("category", nextCategory);
 
     const response = await fetch(`/api/discovery/places?${params.toString()}`);
@@ -161,7 +167,7 @@ export function DiscoveryMap({
     const payload = (await response.json()) as { places: DiscoveryPlace[] };
     setPlaces(payload.places);
     setMessage(payload.places.length ? "" : "We couldn't find that place in the current map view.");
-  }, [category, city, query, userLocation]);
+  }, [category, city, query, stateContext, userLocation]);
 
   async function handleSearch(formData: FormData) {
     const nextQuery = query;
@@ -171,7 +177,7 @@ export function DiscoveryMap({
     setMessage("Searching places...");
 
     try {
-      await refreshPlaces({ query: nextQuery, city: nextCity, category: nextCategory });
+      await refreshPlaces({ query: nextQuery, city: nextCity, state: stateContext, category: nextCategory });
     } catch {
       setMessage("Search is unavailable right now. You can still browse the places already shown.");
     }
@@ -229,6 +235,11 @@ export function DiscoveryMap({
           {city ? (
             <p className="rounded-md bg-white px-3 py-2 text-sm text-muted">
               Showing places around {city}.
+            </p>
+          ) : null}
+          {!city && stateContext ? (
+            <p className="rounded-md bg-white px-3 py-2 text-sm text-muted">
+              Showing places in {stateContext}.
             </p>
           ) : null}
           {message ? (

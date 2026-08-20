@@ -39,7 +39,7 @@ export function PhotoModerationQueue({ photos }: { photos: StudioPhoto[] }) {
 
         setQueue((current) => current.filter((photo) => photo.id !== result.photoId));
         setToast({ id: Date.now(), message: result.message, tone: "success" });
-        window.dispatchEvent(new CustomEvent("studio:pending-photo-reviewed"));
+        window.dispatchEvent(new CustomEvent("studio:queue-reviewed", { detail: { queue: "photos" } }));
       } catch {
         setToast({
           id: Date.now(),

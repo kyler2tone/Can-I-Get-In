@@ -167,6 +167,11 @@ export function PhotoUploader({
 
         if (insertedPhoto?.id) {
           uploadedPhotoIds.push(insertedPhoto.id);
+          void fetch("/api/photos/moderate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ photoId: insertedPhoto.id }),
+          }).catch(() => undefined);
         }
 
         setQueuedPhoto(photo.id, {

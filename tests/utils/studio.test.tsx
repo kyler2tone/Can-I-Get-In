@@ -167,9 +167,11 @@ describe("studio navigation", () => {
   it("shows pending photo count only when there are photos awaiting review", async () => {
     const { StudioNav } = await import("@/components/studio/studio-nav");
 
-    render(<StudioNav pendingPhotoCount={7} />);
+    render(<StudioNav counts={{ pendingPhotos: 7, pendingPlaces: 2, pendingUpdates: 3 }} />);
 
-    expect(screen.getByLabelText("7 photos awaiting review")).toHaveTextContent("7");
+    expect(screen.getByLabelText("7 items awaiting review")).toHaveTextContent("7");
+    expect(screen.getByLabelText("2 items awaiting review")).toHaveTextContent("2");
+    expect(screen.getByLabelText("3 items awaiting review")).toHaveTextContent("3");
   });
 });
 
@@ -271,17 +273,24 @@ describe("studio photo data", () => {
     expect(photos[0].placeName).toBe("Main Street Cafe");
   });
 
-  it("loads the Studio pending photo count from moderation data", async () => {
-    const query = {
-      eq: vi.fn().mockResolvedValue({ count: 7 }),
-    };
-    mocks.from.mockReturnValueOnce({ select: vi.fn(() => query) });
+  it("loads Studio pending counts from moderation data", async () => {
+    const photos = { eq: vi.fn().mockResolvedValue({ count: 7 }) };
+    const places = { eq: vi.fn().mockResolvedValue({ count: 2 }) };
+    const updates = { eq: vi.fn().mockResolvedValue({ count: 3 }) };
+    mocks.from
+      .mockReturnValueOnce({ select: vi.fn(() => photos) })
+      .mockReturnValueOnce({ select: vi.fn(() => places) })
+      .mockReturnValueOnce({ select: vi.fn(() => updates) });
 
     const { getStudioCounts } = await import("@/lib/studio");
     const counts = await getStudioCounts();
 
-    expect(query.eq).toHaveBeenCalledWith("moderation_status", "pending");
+    expect(photos.eq).toHaveBeenCalledWith("moderation_status", "pending");
+    expect(places.eq).toHaveBeenCalledWith("publish_status", "pending_review");
+    expect(updates.eq).toHaveBeenCalledWith("status", "pending");
     expect(counts.pendingPhotos).toBe(7);
+    expect(counts.pendingPlaces).toBe(2);
+    expect(counts.pendingUpdates).toBe(3);
   });
 
   it("public place photo loading requests approved photos only", async () => {

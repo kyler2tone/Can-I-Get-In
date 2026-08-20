@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 
@@ -22,7 +23,6 @@ const footerGroups = [
   {
     title: "CIGI",
     links: [
-      { label: "For Businesses", href: "/contribute" },
       { label: "About", href: "/about" },
     ],
   },
@@ -46,8 +46,16 @@ export function PageShell({
     <>
       <SiteHeader sticky={stickyHeader} />
       <main className="flex-1">{children}</main>
-      <footer className="bg-brand-strong px-4 py-12 text-sm text-white sm:px-6 lg:px-8" id="about">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.15fr_1fr]">
+      <footer className="relative overflow-hidden bg-brand-strong px-4 py-12 text-sm text-white sm:px-6 lg:px-8" id="about">
+        <Image
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-20 -right-16 opacity-[0.07] sm:-bottom-32 sm:-right-24"
+          height={520}
+          src="/brand/CanIGetInLogoMark.png"
+          width={520}
+        />
+        <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.15fr_1fr]">
           <div>
             <h2 className="text-2xl font-black">Can I Get In?</h2>
             <p className="mt-3 max-w-xl text-white/78">
@@ -83,7 +91,7 @@ export function PageShell({
           </div>
         </div>
 
-        <div className="mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/18 pt-6 text-white/72 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative mx-auto mt-10 flex max-w-7xl flex-col gap-2 border-t border-white/18 pt-6 text-white/72 sm:flex-row sm:items-center sm:justify-between">
           <p>Open source. Built for the OpenAI Build for Good Challenge 2026.</p>
           <p>Know before you go.</p>
         </div>

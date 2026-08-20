@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Award, CalendarDays, MapPinned } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
+import { getContributorImpact } from "@/lib/contributor-impact";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import { sampleProfiles } from "@/lib/sample-data";
 
@@ -18,7 +19,7 @@ export default async function ContributorProfilePage({
   const supabase = await getSupabaseServerClient();
   const { data } = await supabase
     .from("public_profiles")
-    .select("username, display_name, avatar_url, bio, city, state, points, contribution_count, created_at")
+    .select("id, username, display_name, avatar_url, bio, city, state, points, contribution_count, created_at")
     .eq("username", username)
     .maybeSingle();
 
@@ -33,6 +34,8 @@ export default async function ContributorProfilePage({
   const createdAt = "created_at" in profile ? profile.created_at : profile.joinedAt;
   const count =
     "contribution_count" in profile ? profile.contribution_count : profile.contributionCount;
+  const impact = "id" in profile && typeof profile.id === "string" ? await getContributorImpact(profile.id) : null;
+  const earnedBadges = impact?.earnedBadges ?? [];
 
   return (
     <PageShell>
@@ -43,7 +46,7 @@ export default async function ContributorProfilePage({
           </p>
           <h1 className="mt-2 text-3xl font-semibold">{displayName}</h1>
           <p className="mt-1 text-muted">@{profile.username}</p>
-          <p className="mt-4 max-w-2xl leading-7 text-muted">
+          <p className="mt-4 max-w-2xl whitespace-pre-line leading-7 text-muted">
             {profile.bio || "This Contributor has not added a bio yet."}
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -55,7 +58,7 @@ export default async function ContributorProfilePage({
             <div className="border border-line bg-white p-4">
               <Award className="text-brand" aria-hidden="true" />
               <p className="mt-2 text-sm text-muted">Badges</p>
-              <p className="text-2xl font-semibold">Soon</p>
+              <p className="text-2xl font-semibold">{earnedBadges.length}</p>
             </div>
             <div className="border border-line bg-white p-4">
               <CalendarDays className="text-brand" aria-hidden="true" />
@@ -63,6 +66,19 @@ export default async function ContributorProfilePage({
               <p className="text-lg font-semibold">{createdAt?.slice(0, 10)}</p>
             </div>
           </div>
+          {earnedBadges.length ? (
+            <section className="mt-6 border border-line bg-white p-4" aria-labelledby="earned-badges">
+              <h2 id="earned-badges" className="font-semibold">Earned Badges</h2>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {earnedBadges.map((badge) => (
+                  <div className="rounded-md border border-brand/30 bg-sky-soft p-3" key={badge.slug}>
+                    <p className="font-semibold text-brand-strong">{badge.name}</p>
+                    <p className="mt-1 text-sm text-muted">{badge.description}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </section>
     </PageShell>

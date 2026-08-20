@@ -63,7 +63,7 @@ export const displayNameSchema = z
 export const profileSchema = z.object({
   displayName: displayNameSchema,
   avatarUrl: z.string().trim().url("Upload an avatar or leave it blank.").or(z.literal("")),
-  bio: z.string().trim().max(280, "Bio must be 280 characters or fewer."),
+  bio: z.string().trim().max(500, "Bio must be 500 characters or fewer."),
   city: z.string().trim().max(80),
   state: z.string().trim().max(40),
 });
