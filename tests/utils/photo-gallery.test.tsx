@@ -3,19 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PhotoGallery } from "@/components/places/photo-gallery";
 import type { PlacePhoto } from "@/lib/places";
 
-const mocks = vi.hoisted(() => ({
-  refresh: vi.fn(),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({
-    refresh: mocks.refresh,
-  }),
-}));
-
 describe("public photo lightbox", () => {
   beforeEach(() => {
-    mocks.refresh.mockReset();
     vi.restoreAllMocks();
   });
 
@@ -46,40 +35,13 @@ describe("public photo lightbox", () => {
     expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument();
   });
 
-  it("shows owner controls and deletes owned photos", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({ message: "Photo deleted." }),
-      })),
-    );
-
+  it("does not show delete controls in the public lightbox", async () => {
     render(<PhotoGallery photos={photos} placeSlug="example-place" />);
     fireEvent.click(screen.getAllByRole("button", { name: "Entrance Overview accessibility photo" })[0]);
-    fireEvent.click(screen.getByRole("button", { name: "Photo options" }));
-    fireEvent.click(screen.getByRole("button", { name: "Delete photo" }));
-
     await waitFor(() => expect(screen.getByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument());
-    expect(screen.getByText(/1 of 1/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Next photo" })).not.toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(
-      "/api/photos/delete",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ photoId: "photo-1" }),
-      }),
-    );
-    expect(mocks.refresh).toHaveBeenCalled();
-  });
-
-  it("does not show delete controls for photos owned by someone else", () => {
-    render(<PhotoGallery photos={[{ ...photos[0], canManage: false }]} placeSlug="example-place" />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Entrance Overview accessibility photo" }));
 
     expect(screen.queryByRole("button", { name: "Photo options" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete photo" })).not.toBeInTheDocument();
   });
 });
 

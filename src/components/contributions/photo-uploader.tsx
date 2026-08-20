@@ -205,8 +205,9 @@ export function PhotoUploader({
     }
 
     setNotice("Contribution submitted. Photos are pending review.");
-    router.refresh();
     setIsSubmitting(false);
+    router.push(`/places/${placeSlug}`);
+    router.refresh();
   }
 
   async function deletePhoto(photo: PlacePhoto) {

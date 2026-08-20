@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  accessibilityFactorOptions,
   accessibilityFactors,
-  accessibilityStatusValues,
-  getAccessibilityStatusLabel,
+  defaultAccessibilityOptions,
   type AccessibilityFactorKey,
   type AccessibilityStatus,
 } from "@/lib/accessibility-factors";
@@ -17,6 +17,13 @@ export function SuggestUpdateForm({ placeId }: { placeId: string }) {
   const [explanation, setExplanation] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const statusOptions =
+    selectedFactors.length === 1
+      ? accessibilityFactorOptions[selectedFactors[0]]
+      : defaultAccessibilityOptions;
+  const effectiveSuggestedStatus = statusOptions.some((option) => option.value === suggestedStatus)
+    ? suggestedStatus
+    : "";
 
   async function submitUpdate() {
     setIsSubmitting(true);
@@ -29,7 +36,7 @@ export function SuggestUpdateForm({ placeId }: { placeId: string }) {
         body: JSON.stringify({
           placeId,
           factors: selectedFactors,
-          suggestedStatus: suggestedStatus || null,
+          suggestedStatus: effectiveSuggestedStatus || null,
           explanation,
         }),
       });
@@ -82,12 +89,12 @@ export function SuggestUpdateForm({ placeId }: { placeId: string }) {
           <select
             className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2"
             onChange={(event) => setSuggestedStatus(event.target.value as AccessibilityStatus | "")}
-            value={suggestedStatus}
+            value={effectiveSuggestedStatus}
           >
             <option value="">No specific status</option>
-            {accessibilityStatusValues.map((status) => (
-              <option key={status} value={status}>
-                {getAccessibilityStatusLabel(status)}
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>

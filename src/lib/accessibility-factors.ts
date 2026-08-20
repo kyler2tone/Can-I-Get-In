@@ -128,7 +128,12 @@ export const accessibilityFactorOptions: Record<
   Array<{ value: AccessibilityStatus; label: string }>
 > = {
   step_free_entrance: defaultAccessibilityOptions,
-  ramp_present: defaultAccessibilityOptions,
+  ramp_present: [
+    { value: "yes", label: "Yes" },
+    { value: "no", label: "No" },
+    { value: "not_needed", label: "Not needed" },
+    { value: "unknown", label: "Unknown" },
+  ],
   accessible_parking: defaultAccessibilityOptions,
   curb_cut: defaultAccessibilityOptions,
   interior_route: defaultAccessibilityOptions,
@@ -169,6 +174,19 @@ export function getAccessibilityFactorLabel(value: string) {
 
 export function getAccessibilityStatusLabel(value: string) {
   return accessibilityStatusMeta[value as AccessibilityStatus]?.label ?? value.replaceAll("_", " ");
+}
+
+export function getAccessibilityFactorStatusLabel(factor: string, value: string) {
+  if (!isAccessibilityFactor(factor)) return getAccessibilityStatusLabel(value);
+
+  return (
+    accessibilityFactorOptions[factor].find((option) => option.value === value)?.label ??
+    (value === "unknown" ? "Unknown" : "Not documented")
+  );
+}
+
+export function isAccessibilityStatusAllowedForFactor(factor: string, value: string) {
+  return isAccessibilityFactor(factor) && accessibilityFactorOptions[factor].some((option) => option.value === value);
 }
 
 export function emptyAccessibilityObservations(): AccessibilityFactorObservation[] {

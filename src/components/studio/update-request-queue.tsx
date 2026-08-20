@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { acceptUpdateRequestAction, rejectUpdateRequestAction } from "@/lib/studio-actions";
-import { getAccessibilityFactorLabel, getAccessibilityStatusLabel } from "@/lib/accessibility-factors";
+import { getAccessibilityFactorLabel, getAccessibilityFactorStatusLabel } from "@/lib/accessibility-factors";
 import type { StudioUpdateRequest } from "@/lib/studio";
 
 export function UpdateRequestQueue({ updates }: { updates: StudioUpdateRequest[] }) {
@@ -44,7 +44,7 @@ export function UpdateRequestQueue({ updates }: { updates: StudioUpdateRequest[]
                 </div>
                 <div>
                   <dt className="font-semibold">Suggested status</dt>
-                  <dd className="text-muted">{formatStatus(update.suggestedStatus)}</dd>
+                  <dd className="text-muted">{formatStatus(update.suggestedStatus, update.factors)}</dd>
                 </div>
                 <div>
                   <dt className="font-semibold">Contributor</dt>
@@ -101,6 +101,9 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function formatStatus(value: string) {
-  return getAccessibilityStatusLabel(value);
+function formatStatus(value: string, factors: string[]) {
+  if (!value) return "No specific status";
+  if (factors.length === 1) return getAccessibilityFactorStatusLabel(factors[0], value);
+  if (["yes", "no", "unknown"].includes(value)) return getAccessibilityFactorStatusLabel("step_free_entrance", value);
+  return "Review requested";
 }

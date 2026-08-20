@@ -9,7 +9,12 @@ import {
   normalizeAnalysisOutput,
   type AccessibilityAnalysisOutput,
 } from "@/lib/accessibility";
-import { emptyAccessibilityObservations } from "@/lib/accessibility-factors";
+import {
+  accessibilityFactorOptions,
+  emptyAccessibilityObservations,
+  getAccessibilityFactorStatusLabel,
+  isAccessibilityStatusAllowedForFactor,
+} from "@/lib/accessibility-factors";
 import {
   accessibilityDeveloperPrompt,
   accessibilityJsonSchemaFormat,
@@ -118,6 +123,39 @@ describe("accessibility structured output", () => {
 
     expect(parsed.observations.ramp_present.status).toBe("yes");
     expect(parsed.observations.curb_cut.status).toBe("unknown");
+  });
+
+  it("allows not needed for ramp present without using counter text", () => {
+    const parsed = accessibilityAnalysisSchema.parse({
+      ...validAnalysisOutput(),
+      observations: {
+        ...validAnalysisOutput().observations,
+        ramp_present: {
+          status: "not_needed",
+          confidence: 0.9,
+          evidence_summary: "The contributor reported there was no level change requiring a ramp.",
+          evidence_source: "contributor",
+        },
+      },
+    });
+
+    expect(parsed.observations.ramp_present.status).toBe("not_needed");
+    expect(getAccessibilityFactorStatusLabel("ramp_present", "not_needed")).toBe("Not needed");
+    expect(getAccessibilityFactorStatusLabel("ramp_present", "not_applicable")).toBe("Not documented");
+    expect(getAccessibilityFactorStatusLabel("ramp_present", "not_applicable")).not.toBe("No counter or front desk");
+  });
+
+  it("keeps accessibility status options scoped to their factor", () => {
+    expect(accessibilityFactorOptions.ramp_present.map((option) => option.value)).toEqual([
+      "yes",
+      "no",
+      "not_needed",
+      "unknown",
+    ]);
+    expect(isAccessibilityStatusAllowedForFactor("ramp_present", "not_needed")).toBe(true);
+    expect(isAccessibilityStatusAllowedForFactor("ramp_present", "not_applicable")).toBe(false);
+    expect(isAccessibilityStatusAllowedForFactor("counter_access", "not_applicable")).toBe(true);
+    expect(isAccessibilityStatusAllowedForFactor("counter_access", "not_needed")).toBe(false);
   });
 
   it("supports semantic non-applicable states without collapsing them to no", () => {
@@ -397,6 +435,44 @@ describe("public accessibility glance", () => {
     expect(screen.queryByText(/Factual observations/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/May require assistance/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Insufficient information/i)).not.toBeInTheDocument();
+  });
+
+  it("uses factor-specific labels when rendering shared status values", () => {
+    render(
+      <AccessibilityGlance
+        observations={[
+          {
+            factor: "ramp_present",
+            label: "Ramp present",
+            status: "not_needed",
+            confidence: 0.9,
+            evidenceSummary: "The entrance is level.",
+            evidenceSource: "contributor",
+          },
+          {
+            factor: "counter_access",
+            label: "Counter / Front Desk",
+            status: "not_applicable",
+            confidence: 0.9,
+            evidenceSummary: "No counter is part of this place.",
+            evidenceSource: "contributor",
+          },
+          {
+            factor: "ramp_present",
+            label: "Ramp present",
+            status: "not_applicable",
+            confidence: 0.9,
+            evidenceSummary: "Invalid legacy cross-field value.",
+            evidenceSource: "contributor",
+          },
+        ]}
+        summary="Accessibility information is still being documented."
+      />,
+    );
+
+    expect(screen.getByText("Not needed")).toBeInTheDocument();
+    expect(screen.getByText("Not applicable / no counter or front desk")).toBeInTheDocument();
+    expect(screen.queryByText("No counter or front desk")).not.toBeInTheDocument();
   });
 });
 

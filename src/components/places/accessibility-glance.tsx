@@ -1,5 +1,6 @@
 import {
   accessibilityStatusMeta,
+  getAccessibilityFactorStatusLabel,
   type AccessibilityFactorObservation,
 } from "@/lib/accessibility-factors";
 
@@ -28,7 +29,7 @@ export function AccessibilityGlance({
               </div>
               <p className="mt-2 text-sm">
                 <span className="sr-only">{observation.label}: </span>
-                {meta.label}
+                {getAccessibilityFactorStatusLabel(observation.factor, observation.status)}
               </p>
             </div>
           );

@@ -61,6 +61,9 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
                 <Camera size={18} aria-hidden="true" />
                 Help improve this place
               </ButtonLink>
+              <p className="mt-3 text-xs leading-5 text-muted">
+                Need to manage photos you uploaded? Select Help improve this place and scroll to Your uploaded photos.
+              </p>
             </div>
             <div className="border border-line bg-surface p-5">
               <h2 className="text-lg font-semibold">Missing information</h2>

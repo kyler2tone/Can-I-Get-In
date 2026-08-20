@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCompletedProfile } from "@/lib/auth";
-import { accessibilityStatusValues, isAccessibilityFactor } from "@/lib/accessibility-factors";
+import {
+  accessibilityStatusValues,
+  isAccessibilityFactor,
+  isAccessibilityStatusAllowedForFactor,
+} from "@/lib/accessibility-factors";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const suggestUpdateSchema = z.object({
@@ -25,6 +29,18 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { message: parsed.error.issues[0]?.message ?? "Check the update details and try again." },
+      { status: 400 },
+    );
+  }
+
+  const suggestedStatus = parsed.data.suggestedStatus;
+  if (
+    suggestedStatus &&
+    parsed.data.factors.length &&
+    !parsed.data.factors.every((factor) => isAccessibilityStatusAllowedForFactor(factor, suggestedStatus))
+  ) {
+    return NextResponse.json(
+      { message: "Choose a status that matches the selected accessibility detail." },
       { status: 400 },
     );
   }

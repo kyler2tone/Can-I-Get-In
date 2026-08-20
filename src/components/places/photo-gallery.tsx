@@ -3,8 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Camera, ChevronLeft, ChevronRight, MoreHorizontal, Trash2, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Camera, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { photoCategories } from "@/lib/photo-categories";
 import type { PlacePhoto } from "@/lib/places";
 
@@ -19,15 +18,13 @@ export function PhotoGallery({
   photos: PlacePhoto[];
   placeSlug: string;
 }) {
-  const [galleryPhotos, setGalleryPhotos] = useState(photos);
   const [activePhotoId, setActivePhotoId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const groups = photoCategories.map((category) => ({
     ...category,
-    photos: galleryPhotos
+    photos: photos
       .filter((photo) => photo.category === category.value)
       .map((photo) => ({ ...photo, categoryLabel: category.label })),
   }));
@@ -35,12 +32,6 @@ export function PhotoGallery({
   const lightboxPhotos = activeGroup?.photos ?? [];
   const activeIndex = lightboxPhotos.findIndex((photo) => photo.id === activePhotoId);
   const activePhoto = activeIndex >= 0 ? lightboxPhotos[activeIndex] : null;
-
-  useEffect(() => {
-    if (!toast) return;
-    const handle = window.setTimeout(() => setToast(""), 2400);
-    return () => window.clearTimeout(handle);
-  }, [toast]);
 
   function openLightbox(photoId: string, category: string, button: HTMLButtonElement) {
     activeButtonRef.current = button;
@@ -52,16 +43,6 @@ export function PhotoGallery({
     setActivePhotoId(null);
     setActiveCategory(null);
     window.setTimeout(() => activeButtonRef.current?.focus(), 0);
-  }
-
-  function removePhoto(photoId: string) {
-    const remainingInCategory = lightboxPhotos.filter((photo) => photo.id !== photoId);
-    const nextPhoto = remainingInCategory[Math.min(activeIndex, remainingInCategory.length - 1)];
-
-    setGalleryPhotos((current) => current.filter((photo) => photo.id !== photoId));
-    setActivePhotoId(nextPhoto?.id ?? null);
-    if (!nextPhoto) setActiveCategory(null);
-    setToast("Photo deleted");
   }
 
   return (
@@ -118,18 +99,10 @@ export function PhotoGallery({
           </div>
         ))}
       </div>
-      <div className="fixed right-4 top-20 z-50" aria-live="polite" aria-atomic="true">
-        {toast ? (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-lg" role="status">
-            {toast}
-          </p>
-        ) : null}
-      </div>
       {activePhoto ? (
         <PhotoLightbox
           activeIndex={activeIndex}
           onClose={closeLightbox}
-          onDelete={removePhoto}
           onNavigate={(index) => setActivePhotoId(lightboxPhotos[index]?.id ?? null)}
           photos={lightboxPhotos}
         />
@@ -143,19 +116,13 @@ function PhotoLightbox({
   photos,
   onClose,
   onNavigate,
-  onDelete,
 }: {
   activeIndex: number;
   photos: GalleryPhoto[];
   onClose: () => void;
   onNavigate: (index: number) => void;
-  onDelete: (photoId: string) => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  const router = useRouter();
   const photo = photos[activeIndex];
   const previousIndex = activeIndex > 0 ? activeIndex - 1 : photos.length - 1;
   const nextIndex = activeIndex < photos.length - 1 ? activeIndex + 1 : 0;
@@ -205,29 +172,6 @@ function PhotoLightbox({
     }
   }, [nextIndex, photos, previousIndex]);
 
-  async function deletePhoto() {
-    if (!photo.canManage || isDeleting) return;
-    const confirmed = window.confirm("Delete this photo?");
-    if (!confirmed) return;
-
-    setIsDeleting(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/photos/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: photo.id }),
-      });
-      const payload = (await response.json()) as { message?: string };
-      if (!response.ok) throw new Error(payload.message ?? "Photo could not be deleted.");
-      onDelete(photo.id);
-      router.refresh();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Photo could not be deleted.");
-      setIsDeleting(false);
-    }
-  }
-
   if (!photo) return null;
 
   return (
@@ -248,33 +192,6 @@ function PhotoLightbox({
             </p>
           </div>
           <div className="relative flex items-center gap-2">
-            {photo.canManage ? (
-              <>
-                <button
-                  className="grid size-10 place-items-center rounded-full bg-white/12 transition hover:bg-white/20 focus:outline focus:outline-2 focus:outline-white active:translate-y-px disabled:opacity-60 motion-reduce:active:translate-y-0"
-                  data-lightbox-control
-                  onClick={() => setMenuOpen((open) => !open)}
-                  type="button"
-                  aria-label="Photo options"
-                >
-                  <MoreHorizontal size={20} aria-hidden="true" />
-                </button>
-                {menuOpen ? (
-                  <div className="absolute right-12 top-12 w-44 rounded-md bg-white p-2 text-foreground shadow-lg">
-                    <button
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-rose-900 transition hover:bg-rose-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-rose-500 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:active:translate-y-0"
-                      data-lightbox-control
-                      disabled={isDeleting}
-                      onClick={() => void deletePhoto()}
-                      type="button"
-                    >
-                      <Trash2 size={16} aria-hidden="true" />
-                      {isDeleting ? "Deleting..." : "Delete photo"}
-                    </button>
-                  </div>
-                ) : null}
-              </>
-            ) : null}
             <button
               className="grid size-10 place-items-center rounded-full bg-white text-foreground transition hover:bg-sky-soft focus:outline focus:outline-2 focus:outline-white active:translate-y-px motion-reduce:active:translate-y-0"
               data-lightbox-control
@@ -319,11 +236,6 @@ function PhotoLightbox({
             </button>
           ) : null}
         </div>
-        {message ? (
-          <p className="mt-3 rounded-md bg-rose-100 px-3 py-2 text-sm text-rose-950" role="status">
-            {message}
-          </p>
-        ) : null}
       </div>
     </div>
   );
