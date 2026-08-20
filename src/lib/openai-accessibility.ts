@@ -8,7 +8,7 @@ import {
   saveAccessibilityAnalysis,
   type AccessibilityAnalysisOutput,
 } from "@/lib/accessibility";
-import { accessibilityFactors } from "@/lib/accessibility-factors";
+import { accessibilityFactors, accessibilityStatusValues } from "@/lib/accessibility-factors";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const responsesUrl = "https://api.openai.com/v1/responses";
@@ -192,9 +192,14 @@ export function accessibilityDeveloperPrompt() {
     "Do not declare the place accessible, inaccessible, ADA compliant, or legally compliant.",
     "Use yes only when the evidence clearly supports the factor.",
     "Use no only when the evidence clearly shows absence or a barrier for the named factor.",
-    "Contributor yes and no observations are evidence. Preserve them as contributor-reported evidence instead of calling them missing evidence.",
+    "Contributor observations are evidence. Preserve nuanced contributor-reported states instead of collapsing them into generic yes or no.",
     "Use unknown when evidence is missing, ambiguous, cropped, conflicting, or not visible.",
     "Absence from a photograph does not mean no. Lack of evidence means unknown.",
+    "For automatic_door, use automatic, door_not_automatic, no_door_on_site, or unknown. Do not treat no_door_on_site as a missing automatic door.",
+    "For accessible_restroom, use restroom_available, restroom_present_not_accessible, no_restroom_on_site, or unknown. Do not treat no_restroom_on_site as an accessibility failure.",
+    "For counter_access, use lower_accessible_height, standing_height, not_applicable, or unknown. Do not collapse not_applicable into no.",
+    "For elevator, use yes, no, not_needed, or unknown. Use not_needed when relevant public areas are on one accessible level or an elevator is not relevant.",
+    "Look for elevators where relevant in interior, lobby, route-to-destination photos, and contributor notes.",
     "Do not infer measurements such as doorway width or ramp slope from ordinary photos.",
     "Keep ramp_present separate from curb_cut. ramp_present means a ramp used to overcome a level change; curb_cut means the ramped transition between parking or street surface and sidewalk or pedestrian route.",
     "Look for curb cuts in accessible parking, route-to-entrance, entrance overview, and other relevant exterior evidence. They may appear at street-to-sidewalk transitions, next to accessible parking, along either side of an entrance approach, or as a sloped sidewalk transition with or without high-visibility paint.",
@@ -218,7 +223,7 @@ export function accessibilityJsonSchemaFormat() {
         additionalProperties: false,
         required: ["status", "confidence", "evidence_summary", "evidence_source"],
         properties: {
-          status: { type: "string", enum: ["yes", "no", "unknown"] },
+          status: { type: "string", enum: [...accessibilityStatusValues] },
           confidence: { type: "number", minimum: 0, maximum: 1 },
           evidence_summary: { type: "string", minLength: 1, maxLength: 500 },
           evidence_source: {

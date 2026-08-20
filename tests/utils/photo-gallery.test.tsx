@@ -61,7 +61,9 @@ describe("public photo lightbox", () => {
     fireEvent.click(screen.getByRole("button", { name: "Photo options" }));
     fireEvent.click(screen.getByRole("button", { name: "Delete photo" }));
 
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument());
+    expect(screen.getByText(/1 of 1/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next photo" })).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       "/api/photos/delete",
       expect.objectContaining({

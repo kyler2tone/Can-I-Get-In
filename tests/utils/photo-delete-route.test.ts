@@ -81,6 +81,20 @@ describe("photo deletion route", () => {
     expect(mocks.analyzePlaceAccessibility).toHaveBeenCalledWith("place-1");
   });
 
+  it("does not delete the database record when storage deletion fails", async () => {
+    mocks.remove.mockResolvedValueOnce({ error: { message: "Storage denied" } });
+    const { POST } = await import("@/app/api/photos/delete/route");
+    const response = await POST(
+      new Request("https://canigetin.app/api/photos/delete", {
+        method: "POST",
+        body: JSON.stringify({ photoId: "photo-1" }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(mocks.deleteFn).not.toHaveBeenCalled();
+  });
+
   it("does not allow deleting another contributor's photo", async () => {
     mocks.maybeSingle.mockReset();
     mocks.maybeSingle

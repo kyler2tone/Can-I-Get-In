@@ -5,6 +5,7 @@ import { objectPathFromDatabasePath } from "@/lib/photo-upload";
 import { getPhotoCategoryLabel, type PhotoCategory } from "@/lib/photo-categories";
 import {
   accessibilityFactors,
+  accessibilityStatusValues,
   emptyAccessibilityObservations,
   getAccessibilityFactorLabel,
   isAccessibilityFactor,
@@ -13,25 +14,15 @@ import {
   type AccessibilityEvidenceSource,
   type AccessibilityStatus,
 } from "@/lib/accessibility-factors";
-
-export const contributorObservationValueSchema = z.enum([
-  "yes",
-  "no",
-  "not_sure",
-  "did_not_need",
-  "comfortable_for_me",
-  "difficult_for_me",
-  "assistance_needed",
-]);
-
-export const contributorObservationSchema = z.object(
-  Object.fromEntries(
-    accessibilityFactors.map((factor) => [factor.key, contributorObservationValueSchema.optional()]),
-  ) as unknown as Record<AccessibilityFactorKey, z.ZodOptional<typeof contributorObservationValueSchema>>,
-);
+export {
+  contributorNotesMaxLength,
+  contributorObservationLabel,
+  contributorObservationSchema,
+  contributorObservationValueSchema,
+} from "@/lib/accessibility-validation";
 
 const modelObservationSchema = z.object({
-  status: z.enum(["yes", "no", "unknown"]),
+  status: z.enum(accessibilityStatusValues),
   confidence: z.number().min(0).max(1),
   evidence_summary: z.string().min(1).max(500),
   evidence_source: z.enum(["photo", "contributor", "mixed", "conflicting", "none"]),
@@ -284,18 +275,4 @@ export async function markAccessibilityAnalysisFailed({
       analyzed_at: new Date().toISOString(),
     })
     .eq("id", analysisId);
-}
-
-export function contributorObservationLabel(value: string) {
-  const labels: Record<string, string> = {
-    yes: "Yes",
-    no: "No",
-    not_sure: "Not sure",
-    did_not_need: "Did not need ramp",
-    comfortable_for_me: "Comfortable for me",
-    difficult_for_me: "Difficult for me",
-    assistance_needed: "Assistance was needed",
-  };
-
-  return labels[value] ?? value;
 }

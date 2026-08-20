@@ -45,12 +45,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "You can only delete your own photos." }, { status: 403 });
   }
 
+  const objectPath = objectPathFromDatabasePath(photo.storage_path);
+  const { error: storageError } = await supabase.storage.from("place-photos").remove([objectPath]);
+  if (storageError) {
+    return NextResponse.json({ message: "Photo file could not be deleted. Try again." }, { status: 400 });
+  }
+
   const { error: deleteError } = await supabase.from("place_photos").delete().eq("id", photoId);
   if (deleteError) {
     return NextResponse.json({ message: "Photo could not be deleted. Try again." }, { status: 400 });
   }
-
-  await supabase.storage.from("place-photos").remove([objectPathFromDatabasePath(photo.storage_path)]);
 
   if (photo.moderation_status === "approved") {
     void analyzePlaceAccessibility(photo.place_id).catch(() => undefined);

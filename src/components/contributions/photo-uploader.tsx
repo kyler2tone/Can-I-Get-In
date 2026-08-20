@@ -15,7 +15,13 @@ import {
 } from "@/lib/photo-upload";
 import { photoCategories, type PhotoCategory } from "@/lib/photo-categories";
 import type { PlacePhoto } from "@/lib/places";
-import { accessibilityFactors, type AccessibilityFactorKey } from "@/lib/accessibility-factors";
+import {
+  accessibilityFactorOptions,
+  accessibilityFactors,
+  type AccessibilityFactorKey,
+  type AccessibilityStatus,
+} from "@/lib/accessibility-factors";
+import { contributorNotesMaxLength } from "@/lib/accessibility-validation";
 
 type QueuedPhoto = {
   id: string;
@@ -30,13 +36,7 @@ type QueuedPhoto = {
 
 type ContributorObservationValue =
   | ""
-  | "yes"
-  | "no"
-  | "not_sure"
-  | "did_not_need"
-  | "comfortable_for_me"
-  | "difficult_for_me"
-  | "assistance_needed";
+  | AccessibilityStatus;
 
 type PhotoUploaderProps = {
   placeId: string;
@@ -60,6 +60,7 @@ export function PhotoUploader({
   const [category, setCategory] = useState<PhotoCategory>(initialCategory);
   const [notice, setNotice] = useState("");
   const [busyPhotoId, setBusyPhotoId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessibilityNotes, setAccessibilityNotes] = useState("");
   const [contributorObservations, setContributorObservations] = useState<
     Partial<Record<AccessibilityFactorKey, ContributorObservationValue>>
@@ -110,6 +111,13 @@ export function PhotoUploader({
   }
 
   async function uploadAll() {
+    if (accessibilityNotes.length > contributorNotesMaxLength) {
+      setNotice(`Notes must be ${contributorNotesMaxLength} characters or fewer.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setNotice("");
     const supabase = getSupabaseBrowserClient();
     const {
       data: { session },
@@ -117,6 +125,7 @@ export function PhotoUploader({
 
     if (!session) {
       setNotice("Please sign in again before uploading photos.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -170,38 +179,58 @@ export function PhotoUploader({
           status: "error",
           message: error instanceof Error ? error.message : "Upload failed.",
         });
+        setNotice("Some photos could not be uploaded. Fix the errors and try again.");
+        setIsSubmitting(false);
+        return;
       }
     }
 
-    if (uploadedPhotoIds.length && hasContributorEvidence(contributorObservations, accessibilityNotes)) {
-      await supabase.from("contributor_place_observations").insert({
-        place_id: placeId,
-        contributor_id: userId,
-        photo_ids: uploadedPhotoIds,
-        observations: cleanContributorObservations(contributorObservations),
-        notes: accessibilityNotes.trim() || null,
+    if (hasContributorEvidence(contributorObservations, accessibilityNotes)) {
+      const response = await fetch("/api/contributions/observations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          placeId,
+          photoIds: uploadedPhotoIds,
+          observations: cleanContributorObservations(contributorObservations),
+          notes: accessibilityNotes,
+        }),
       });
+      const payload = (await response.json()) as { message?: string };
+      if (!response.ok) {
+        setNotice(payload.message ?? "Accessibility observations could not be saved. Please try again.");
+        setIsSubmitting(false);
+        return;
+      }
     }
 
-    router.push(`/places/${placeSlug}`);
+    setNotice("Contribution submitted. Photos are pending review.");
     router.refresh();
+    setIsSubmitting(false);
   }
 
   async function deletePhoto(photo: PlacePhoto) {
+    const confirmed = window.confirm("Delete this photo?");
+    if (!confirmed) return;
+
     setBusyPhotoId(photo.id);
     setNotice("");
-    const supabase = getSupabaseBrowserClient();
-    const { error: dbError } = await supabase.from("place_photos").delete().eq("id", photo.id);
 
-    if (dbError) {
-      setNotice(dbError.message);
+    try {
+      const response = await fetch("/api/photos/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoId: photo.id }),
+      });
+      const payload = (await response.json()) as { message?: string };
+      if (!response.ok) throw new Error(payload.message ?? "Photo could not be deleted.");
+      setNotice(payload.message ?? "Photo deleted.");
+      router.refresh();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Photo could not be deleted.");
+    } finally {
       setBusyPhotoId(null);
-      return;
     }
-
-    await supabase.storage.from("place-photos").remove([objectPathFromDatabasePath(photo.storage_path)]);
-    router.push(`/places/${placeSlug}`);
-    router.refresh();
   }
 
   async function replacePhoto(photo: PlacePhoto, file: File) {
@@ -372,17 +401,11 @@ export function PhotoUploader({
                 value={contributorObservations[factor.key] ?? ""}
               >
                 <option value="">No observation</option>
-                <option value="yes">Yes</option>
-                <option value="no">No</option>
-                <option value="not_sure">Not sure</option>
-                {factor.key === "ramp_present" ? (
-                  <>
-                    <option value="did_not_need">Did not need ramp</option>
-                    <option value="comfortable_for_me">Ramp was comfortable for me</option>
-                    <option value="difficult_for_me">Ramp was difficult for me</option>
-                    <option value="assistance_needed">Assistance was needed</option>
-                  </>
-                ) : null}
+                {accessibilityFactorOptions[factor.key].map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
           ))}
@@ -391,22 +414,35 @@ export function PhotoUploader({
           Accessibility notes <span className="font-normal text-muted">(optional)</span>
           <textarea
             className="mt-1 min-h-28 w-full rounded-md border border-line bg-white px-3 py-2"
-            maxLength={500}
+            aria-describedby="accessibility-notes-count"
+            maxLength={contributorNotesMaxLength}
             onChange={(event) => setAccessibilityNotes(event.target.value)}
             placeholder="Share anything you noticed about getting into or moving through this place."
             value={accessibilityNotes}
           />
+          <span
+            className="mt-1 block text-xs text-muted"
+            id="accessibility-notes-count"
+            aria-live="polite"
+          >
+            {accessibilityNotes.length} / {contributorNotesMaxLength}
+          </span>
         </label>
       </section>
 
-      {queuedPhotos.length ? (
-        <section className="border border-line bg-surface p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <section className="border border-line bg-surface p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
             <h2 className="text-xl font-semibold">Ready to submit</h2>
-            <Button disabled={!readyCount} onClick={uploadAll} type="button">
-              Upload {readyCount || ""} {readyCount === 1 ? "photo" : "photos"}
-            </Button>
+            <p className="mt-1 text-sm text-muted">
+              Submit photos, categories, accessibility observations, and notes together.
+            </p>
           </div>
+          <Button disabled={isSubmitting || (!readyCount && !hasContributorEvidence(contributorObservations, accessibilityNotes))} onClick={uploadAll} type="button">
+            {isSubmitting ? "Submitting..." : "Submit contribution"}
+          </Button>
+        </div>
+        {queuedPhotos.length ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {queuedPhotos.map((photo) => (
               <article className="border border-line bg-white" key={photo.id}>
@@ -459,8 +495,8 @@ export function PhotoUploader({
               </article>
             ))}
           </div>
-        </section>
-      ) : null}
+        ) : null}
+      </section>
 
       <section className="border border-line bg-surface p-5">
         <h2 className="text-xl font-semibold">Your uploaded photos</h2>
@@ -509,7 +545,7 @@ export function PhotoUploader({
                       type="button"
                     >
                       <Trash2 size={16} aria-hidden="true" />
-                      Delete
+                      {busyPhotoId === photo.id ? "Deleting..." : "Delete"}
                     </button>
                   </div>
                 </div>

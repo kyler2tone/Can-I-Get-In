@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCompletedProfile } from "@/lib/auth";
-import { isAccessibilityFactor } from "@/lib/accessibility-factors";
+import { accessibilityStatusValues, isAccessibilityFactor } from "@/lib/accessibility-factors";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const suggestUpdateSchema = z.object({
   placeId: z.string().uuid(),
   factors: z.array(z.string().refine(isAccessibilityFactor)).max(8).default([]),
-  suggestedStatus: z.enum(["yes", "no", "unknown"]).nullable().default(null),
+  suggestedStatus: z.enum(accessibilityStatusValues).nullable().default(null),
   explanation: z.string().trim().min(3, "Tell us what changed or looks incorrect.").max(1000),
 });
 

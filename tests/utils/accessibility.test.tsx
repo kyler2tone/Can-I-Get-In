@@ -120,6 +120,44 @@ describe("accessibility structured output", () => {
     expect(parsed.observations.curb_cut.status).toBe("unknown");
   });
 
+  it("supports semantic non-applicable states without collapsing them to no", () => {
+    const parsed = accessibilityAnalysisSchema.parse({
+      ...validAnalysisOutput(),
+      observations: {
+        ...validAnalysisOutput().observations,
+        automatic_door: {
+          status: "no_door_on_site",
+          confidence: 0.9,
+          evidence_summary: "The documented area is an open outdoor plaza with no door.",
+          evidence_source: "photo",
+        },
+        accessible_restroom: {
+          status: "no_restroom_on_site",
+          confidence: 0.8,
+          evidence_summary: "A contributor reported no restroom on site.",
+          evidence_source: "contributor",
+        },
+        counter_access: {
+          status: "not_applicable",
+          confidence: 0.8,
+          evidence_summary: "No counter or front desk is part of the documented public experience.",
+          evidence_source: "contributor",
+        },
+        elevator: {
+          status: "not_needed",
+          confidence: 0.8,
+          evidence_summary: "The public areas documented are on one accessible level.",
+          evidence_source: "contributor",
+        },
+      },
+    });
+
+    expect(parsed.observations.automatic_door.status).toBe("no_door_on_site");
+    expect(parsed.observations.accessible_restroom.status).toBe("no_restroom_on_site");
+    expect(parsed.observations.counter_access.status).toBe("not_applicable");
+    expect(parsed.observations.elevator.status).toBe("not_needed");
+  });
+
   it("creates stable evidence fingerprints for unchanged evidence", () => {
     const evidence = {
       photos: [
@@ -285,6 +323,7 @@ describe("OpenAI accessibility request", () => {
     expect(format.schema.properties.observations.required).toContain("step_free_entrance");
     expect(format.schema.properties.observations.required).toContain("curb_cut");
     expect(format.schema.properties.observations.required).toContain("counter_access");
+    expect(format.schema.properties.observations.required).toContain("elevator");
     expect(format.schema.properties.observations.properties.curb_cut.required).toContain(
       "evidence_source",
     );
@@ -294,13 +333,14 @@ describe("OpenAI accessibility request", () => {
     const prompt = accessibilityDeveloperPrompt();
 
     expect(prompt).toContain("Do not enumerate every Accessibility at a Glance status");
-    expect(prompt).toContain("Contributor yes and no observations are evidence");
+    expect(prompt).toContain("Contributor observations are evidence");
     expect(prompt).toContain("Absence from a photograph does not mean no");
     expect(prompt).toContain("Keep ramp_present separate from curb_cut");
     expect(prompt).toContain("with or without high-visibility paint");
     expect(prompt).toContain("what would be useful for me to know before I go here");
     expect(prompt).toContain("Do not tell visitors to call ahead");
     expect(prompt).toContain("staff assistance may be mentioned only as a possible practical option");
+    expect(prompt).toContain("For elevator, use yes, no, not_needed, or unknown");
   });
 });
 
@@ -314,7 +354,7 @@ describe("public accessibility glance", () => {
     );
 
     expect(screen.getByText("Accessibility at a glance")).toBeInTheDocument();
-    expect(screen.getAllByText("Unknown")).toHaveLength(9);
+    expect(screen.getAllByText("Unknown")).toHaveLength(10);
     expect(screen.getByText("AI accessibility summary")).toBeInTheDocument();
   });
 
@@ -330,7 +370,7 @@ describe("public accessibility glance", () => {
       .getAllByRole("heading", { level: 3 })
       .map((heading) => heading.textContent);
 
-    expect(labels.slice(0, 9)).toEqual([
+    expect(labels.slice(0, 10)).toEqual([
       "Step-free entrance",
       "Automatic door",
       "Ramp present",
@@ -339,7 +379,8 @@ describe("public accessibility glance", () => {
       "Accessible restroom",
       "Interior route",
       "Seating access",
-      "Counter access",
+      "Counter / Front Desk",
+      "Elevator",
     ]);
   });
 
@@ -414,6 +455,12 @@ function validAnalysisOutput(): AccessibilityAnalysisOutput {
         status: "unknown",
         confidence: 0.9,
         evidence_summary: "Counter evidence is not available.",
+        evidence_source: "none",
+      },
+      elevator: {
+        status: "unknown",
+        confidence: 0.9,
+        evidence_summary: "Elevator evidence is not available.",
         evidence_source: "none",
       },
     },

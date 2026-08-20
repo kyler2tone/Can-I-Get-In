@@ -55,9 +55,12 @@ export function PhotoGallery({
   }
 
   function removePhoto(photoId: string) {
+    const remainingInCategory = lightboxPhotos.filter((photo) => photo.id !== photoId);
+    const nextPhoto = remainingInCategory[Math.min(activeIndex, remainingInCategory.length - 1)];
+
     setGalleryPhotos((current) => current.filter((photo) => photo.id !== photoId));
-    setActivePhotoId(null);
-    setActiveCategory(null);
+    setActivePhotoId(nextPhoto?.id ?? null);
+    if (!nextPhoto) setActiveCategory(null);
     setToast("Photo deleted");
   }
 
@@ -240,7 +243,7 @@ function PhotoLightbox({
           <div>
             <p className="text-sm font-semibold">{photo.categoryLabel}</p>
             <p className="text-xs text-white/72">
-              {photos.length > 1 ? `${activeIndex + 1} of ${photos.length} · ` : ""}
+              {activeIndex + 1} of {photos.length} · 
               {photo.created_at.slice(0, 10)}
             </p>
           </div>

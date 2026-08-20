@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { acceptUpdateRequestAction, rejectUpdateRequestAction } from "@/lib/studio-actions";
-import { getAccessibilityFactorLabel } from "@/lib/accessibility-factors";
+import { getAccessibilityFactorLabel, getAccessibilityStatusLabel } from "@/lib/accessibility-factors";
 import type { StudioUpdateRequest } from "@/lib/studio";
 
 export function UpdateRequestQueue({ updates }: { updates: StudioUpdateRequest[] }) {
@@ -102,8 +102,5 @@ function formatDate(value: string) {
 }
 
 function formatStatus(value: string) {
-  if (value === "yes") return "Documented";
-  if (value === "no") return "Not documented";
-  if (value === "unknown") return "Unknown";
-  return value;
+  return getAccessibilityStatusLabel(value);
 }

@@ -5,6 +5,8 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   accessibilityFactors,
+  accessibilityStatusValues,
+  getAccessibilityStatusLabel,
   type AccessibilityFactorKey,
   type AccessibilityStatus,
 } from "@/lib/accessibility-factors";
@@ -83,9 +85,11 @@ export function SuggestUpdateForm({ placeId }: { placeId: string }) {
             value={suggestedStatus}
           >
             <option value="">No specific status</option>
-            <option value="yes">Documented</option>
-            <option value="no">Not documented</option>
-            <option value="unknown">Unknown</option>
+            {accessibilityStatusValues.map((status) => (
+              <option key={status} value={status}>
+                {getAccessibilityStatusLabel(status)}
+              </option>
+            ))}
           </select>
         </label>
         <label className="block text-sm font-medium">
