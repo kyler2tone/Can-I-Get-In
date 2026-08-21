@@ -115,6 +115,17 @@ export type StudioCounts = {
   pendingUpdates: number;
 };
 
+export type StudioActivityRange = "day" | "week" | "month";
+
+export type StudioActivityItem = {
+  id: string;
+  kind: "city" | "place" | "photo";
+  title: string;
+  description: string;
+  href: string | null;
+  createdAt: string;
+};
+
 export async function getStudioCounts(): Promise<StudioCounts> {
   const supabase = await getSupabaseServerClient();
   const [photos, places, updates] = await Promise.all([
@@ -172,6 +183,96 @@ export async function getPendingStudioUpdateRequests() {
     .order("created_at", { ascending: true });
 
   return hydrateStudioUpdateRequests((data ?? []) as UpdateRequestRow[]);
+}
+
+export async function getStudioActivityLog(range: StudioActivityRange = "week") {
+  const since = activitySince(range);
+  const supabase = await getSupabaseServerClient();
+  const [cities, places, photos] = await Promise.all([
+    supabase
+      .from("cities")
+      .select("id, name, state, slug, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(40),
+    supabase
+      .from("places")
+      .select("id, name, slug, address, created_at, cities(name, state)")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(60),
+    supabase
+      .from("place_photos")
+      .select("id, place_id, category, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(80),
+  ]);
+
+  const photoRows = (photos.data ?? []) as Array<{
+    id: string;
+    place_id: string;
+    category: PhotoCategory;
+    created_at: string;
+  }>;
+  const photoPlaceIds = [...new Set(photoRows.map((photo) => photo.place_id))];
+  const { data: photoPlaces } = photoPlaceIds.length
+    ? await supabase.from("places").select("id, name, slug").in("id", photoPlaceIds)
+    : { data: [] };
+  const photoPlaceById = new Map(
+    ((photoPlaces ?? []) as Array<{ id: string; name: string; slug: string }>).map((place) => [place.id, place]),
+  );
+
+  const items: StudioActivityItem[] = [
+    ...((cities.data ?? []) as Array<{ id: string; name: string; state: string; slug: string; created_at: string }>).map(
+      (city) => ({
+        id: `city-${city.id}`,
+        kind: "city" as const,
+        title: `${city.name}, ${city.state}`,
+        description: "New city coverage started",
+        href: `/map?city=${encodeURIComponent(`${city.name}, ${city.state}`)}`,
+        createdAt: city.created_at,
+      }),
+    ),
+    ...((places.data ?? []) as Array<{
+      id: string;
+      name: string;
+      slug: string;
+      address: string;
+      created_at: string;
+      cities: { name: string; state: string } | Array<{ name: string; state: string }> | null;
+    }>).map((place) => {
+      const city = Array.isArray(place.cities) ? place.cities[0] : place.cities;
+      return {
+        id: `place-${place.id}`,
+        kind: "place" as const,
+        title: place.name,
+        description: city?.name ? `New place added in ${city.name}, ${city.state}` : "New place added",
+        href: `/places/${place.slug}`,
+        createdAt: place.created_at,
+      };
+    }),
+    ...photoRows.map((photo) => {
+      const place = photoPlaceById.get(photo.place_id);
+      return {
+        id: `photo-${photo.id}`,
+        kind: "photo" as const,
+        title: place?.name ?? "Community photo",
+        description: `${getPhotoCategoryLabel(photo.category)} photo added`,
+        href: place?.slug ? `/places/${place.slug}` : null,
+        createdAt: photo.created_at,
+      };
+    }),
+  ];
+
+  return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+function activitySince(range: StudioActivityRange) {
+  const now = new Date();
+  const days = range === "day" ? 1 : range === "week" ? 7 : 31;
+  now.setDate(now.getDate() - days);
+  return now.toISOString();
 }
 
 async function hydrateStudioPhotos(photos: PhotoRow[]): Promise<StudioPhoto[]> {

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Award, CalendarDays, MapPinned } from "lucide-react";
+import { BadgeEmblem } from "@/components/badges/badge-emblem";
 import { PageShell } from "@/components/page-shell";
 import { getContributorImpact } from "@/lib/contributor-impact";
 import { getSupabaseServerClient } from "@/lib/supabase";
@@ -71,10 +72,7 @@ export default async function ContributorProfilePage({
               <h2 id="earned-badges" className="font-semibold">Earned Badges</h2>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {earnedBadges.map((badge) => (
-                  <div className="rounded-md border border-brand/30 bg-sky-soft p-3" key={badge.slug}>
-                    <p className="font-semibold text-brand-strong">{badge.name}</p>
-                    <p className="mt-1 text-sm text-muted">{badge.description}</p>
-                  </div>
+                  <BadgeEmblem badge={badge} key={badge.slug} />
                 ))}
               </div>
             </section>

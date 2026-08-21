@@ -28,8 +28,8 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
   return (
     <PageShell>
       <section className="mx-auto max-w-6xl px-4 py-8">
-        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-          <article>
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <article className="min-w-0">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-accent">
               {place.category}
             </p>
@@ -43,21 +43,21 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               Contribute photos
             </ButtonLink>
             <Suspense fallback={<AccessibilityGlanceSkeleton />}>
-              <PlaceAccessibility placeId={place.id} />
+              <PlaceAccessibility placeId={place.id} placeSlug={slug} />
             </Suspense>
             <Suspense fallback={<PhotoGallerySkeleton />}>
               <PlacePhotoGallery placeId={place.id} placeSlug={slug} />
             </Suspense>
           </article>
-          <aside className="space-y-5">
+          <aside className="min-w-0 space-y-5">
             <div className="border border-line bg-surface p-5">
-              <h2 className="text-lg font-semibold">Photo categories</h2>
+              <h2 className="text-lg font-semibold">Photo Categories</h2>
               <ul className="mt-3 space-y-2 text-sm text-muted">
                 {photoCategories.map((category) => (
                   <li key={category.value}>{category.label}</li>
                 ))}
               </ul>
-              <ButtonLink className="mt-5 w-full" href={`/places/${slug}/contribute`}>
+              <ButtonLink className="mt-5 w-full whitespace-normal text-center" href={`/places/${slug}/contribute`}>
                 <Camera size={18} aria-hidden="true" />
                 Help improve this place
               </ButtonLink>
@@ -66,7 +66,7 @@ export default async function PlacePage({ params }: { params: Promise<{ slug: st
               </p>
             </div>
             <div className="border border-line bg-surface p-5">
-              <h2 className="text-lg font-semibold">Missing information</h2>
+              <h2 className="text-lg font-semibold">Missing Information</h2>
               {place.missingInformation.length ? (
                 <ul className="mt-3 space-y-2 text-sm text-muted">
                   {place.missingInformation.map((item) => (
@@ -98,7 +98,7 @@ async function PlacePhotoGallery({ placeId, placeSlug }: { placeId: string; plac
   return <PhotoGallery photos={photos} placeSlug={placeSlug} />;
 }
 
-async function PlaceAccessibility({ placeId }: { placeId: string }) {
+async function PlaceAccessibility({ placeId, placeSlug }: { placeId: string; placeSlug: string }) {
   let accessibility;
 
   try {
@@ -112,11 +112,37 @@ async function PlaceAccessibility({ placeId }: { placeId: string }) {
     );
   }
 
+  const hasUsefulAccessibilityInformation =
+    accessibility.observations.some((observation) => observation.status !== "unknown") ||
+    accessibility.publicSummary !== "Accessibility information is still being documented for this place.";
+
+  if (!hasUsefulAccessibilityInformation) {
+    return <NewPlaceAccessibilityState placeSlug={placeSlug} />;
+  }
+
   return (
     <AccessibilityGlance
       observations={accessibility.observations}
       summary={accessibility.publicSummary}
     />
+  );
+}
+
+function NewPlaceAccessibilityState({ placeSlug }: { placeSlug: string }) {
+  return (
+    <section className="mt-8 min-w-0 border border-dashed border-line bg-surface p-5" aria-labelledby="new-place-accessibility">
+      <h2 id="new-place-accessibility" className="text-xl font-semibold">
+        Accessibility Information Is Still Being Added
+      </h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        This place is in CIGI, but the community has not documented enough accessibility details yet.
+        Add photos, observations, or notes to help the next visitor know what to expect.
+      </p>
+      <ButtonLink className="mt-4 w-full whitespace-normal text-center sm:w-auto" href={`/places/${placeSlug}/contribute`}>
+        <Camera size={18} aria-hidden="true" />
+        Help improve this place
+      </ButtonLink>
+    </section>
   );
 }
 
@@ -150,7 +176,7 @@ function PhotoGallerySkeleton() {
   return (
     <section className="mt-5 border border-line bg-surface p-5" aria-labelledby="photo-gallery-loading">
       <h2 id="photo-gallery-loading" className="text-xl font-semibold">
-        Community photos
+        Community Photos
       </h2>
       <p className="mt-2 text-sm text-muted">Loading community photos.</p>
       <div className="mt-5 grid gap-3 sm:grid-cols-2" aria-hidden="true">

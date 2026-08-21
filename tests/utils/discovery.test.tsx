@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExploreCities } from "@/components/discovery/explore-cities";
 import { PopularNearYou } from "@/components/discovery/popular-near-you";
+import { mapCenter } from "@/components/map/discovery-map";
 import {
   distanceMiles,
   findDiscoverablePlaces,
@@ -9,6 +10,7 @@ import {
   validCoordinates,
   type DiscoveryPlace,
 } from "@/lib/discovery";
+import { getUsState, usStates } from "@/lib/us-states";
 
 const mocks = vi.hoisted(() => ({
   createSignedUrl: vi.fn(),
@@ -233,6 +235,51 @@ describe("discovery UI states", () => {
     expect(screen.getByRole("link", { name: /Example Place/i })).toHaveAttribute(
       "href",
       "/places/example-place",
+    );
+  });
+});
+
+describe("state directory and map scope", () => {
+  it("includes all 50 states alphabetically for the cities directory", () => {
+    expect(usStates).toHaveLength(50);
+    expect(usStates.map((state) => state.name).slice(0, 3)).toEqual(["Alabama", "Alaska", "Arizona"]);
+    expect(usStates.at(-1)?.name).toBe("Wyoming");
+  });
+
+  it("centers state-scoped maps on state bounds before considering existing pins", () => {
+    const southDakota = getUsState("SD");
+    const expectedCenter = southDakota
+      ? [
+          (southDakota.bounds[0][0] + southDakota.bounds[1][0]) / 2,
+          (southDakota.bounds[0][1] + southDakota.bounds[1][1]) / 2,
+        ]
+      : null;
+
+    expect(southDakota).toBeDefined();
+    expect(mapCenter([discoveryPlace], null, southDakota?.bounds ?? null)).toEqual(expectedCenter);
+  });
+
+  it("preserves city-scoped map links for covered cities", () => {
+    render(
+      <ExploreCities
+        cities={[
+          {
+            name: "Rapid City",
+            state: "SD",
+            slug: "rapid-city-sd",
+            latitude: 44.080543,
+            longitude: -103.231014,
+            placeCount: 2,
+            approvedPhotoCount: 4,
+            imageUrl: null,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /Rapid City/i })).toHaveAttribute(
+      "href",
+      "/map?city=Rapid%20City%2C%20SD",
     );
   });
 });

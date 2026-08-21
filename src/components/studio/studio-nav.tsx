@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Camera, Flag, MapPinned, MessageSquareWarning, Settings, UsersRound } from "lucide-react";
+import { Activity, Camera, Flag, MapPinned, MessageSquareWarning, Settings, UsersRound } from "lucide-react";
 import type { StudioCounts } from "@/lib/studio";
 
 const studioNavItems = [
   { href: "/studio/photos", label: "Photo Moderation", icon: Camera, enabled: true },
   { href: "/studio/places", label: "Places", icon: MapPinned, enabled: true },
   { href: "/studio/updates", label: "Suggested Updates", icon: MessageSquareWarning, enabled: true },
+  { href: "/studio/activity", label: "Activity Log", icon: Activity, enabled: true },
   { href: "/studio/contributors", label: "Contributors", icon: UsersRound, enabled: false },
   { href: "/studio/reports", label: "Reports", icon: Flag, enabled: false },
   { href: "/studio/settings", label: "Settings", icon: Settings, enabled: false },

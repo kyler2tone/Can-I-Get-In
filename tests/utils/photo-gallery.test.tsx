@@ -28,10 +28,10 @@ describe("public photo lightbox", () => {
     render(<PhotoGallery photos={photos} placeSlug="example-place" />);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Entrance Overview accessibility photo" })[0]);
-    fireEvent.mouseDown(screen.getByAltText("Entrance Overview accessibility photo enlarged"));
+    fireEvent.click(screen.getByAltText("Entrance Overview accessibility photo enlarged"));
     expect(screen.getByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
 
-    fireEvent.mouseDown(screen.getByRole("dialog", { name: "Photo viewer" }));
+    fireEvent.click(screen.getByRole("dialog", { name: "Photo viewer" }));
     expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument();
   });
 
@@ -39,10 +39,10 @@ describe("public photo lightbox", () => {
     render(<PhotoGallery photos={photos} placeSlug="example-place" />);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Entrance Overview accessibility photo" })[0]);
-    fireEvent.pointerDown(screen.getByAltText("Entrance Overview accessibility photo enlarged"));
+    fireEvent.pointerUp(screen.getByAltText("Entrance Overview accessibility photo enlarged"));
     expect(screen.getByRole("dialog", { name: "Photo viewer" })).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByRole("dialog", { name: "Photo viewer" }));
+    fireEvent.pointerUp(screen.getByRole("dialog", { name: "Photo viewer" }));
     expect(screen.queryByRole("dialog", { name: "Photo viewer" })).not.toBeInTheDocument();
   });
 

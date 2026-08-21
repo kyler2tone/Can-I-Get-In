@@ -9,6 +9,7 @@ import { formatDistance } from "@/components/discovery/place-card";
 import { Button } from "@/components/ui/button";
 import { UnifiedPlaceSearch } from "@/components/places/unified-place-search";
 import { placeCategories } from "@/lib/place-categories";
+import { getUsState } from "@/lib/us-states";
 import type { DiscoveryPlace } from "@/lib/discovery";
 
 const discoveryMapStyle: maplibregl.StyleSpecification = {
@@ -50,6 +51,7 @@ export function DiscoveryMap({
   const [query, setQuery] = useState(initialQuery);
   const [city] = useState(initialCity);
   const [stateContext] = useState(initialState);
+  const stateBounds = stateContext ? getUsState(stateContext)?.bounds ?? null : null;
   const [category, setCategory] = useState(initialCategory);
   const [message, setMessage] = useState("");
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -75,12 +77,12 @@ export function DiscoveryMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const center = mapCenter(validPlaces, userLocation);
+    const center = mapCenter(validPlaces, userLocation, stateBounds);
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: discoveryMapStyle,
       center,
-      zoom: validPlaces.length ? 12 : 3,
+      zoom: stateBounds ? 5 : validPlaces.length ? 12 : 3,
       attributionControl: { compact: true },
     });
 
@@ -91,7 +93,7 @@ export function DiscoveryMap({
       map.remove();
       mapRef.current = null;
     };
-  }, [validPlaces, userLocation]);
+  }, [stateBounds, validPlaces, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -116,13 +118,15 @@ export function DiscoveryMap({
         .addTo(map);
     });
 
-    if (validPlaces.length) {
+    if (stateBounds && !userLocation && !city) {
+      map.fitBounds(stateBounds, { padding: 32, duration: 500 });
+    } else if (validPlaces.length) {
       const bounds = new maplibregl.LngLatBounds();
       validPlaces.forEach((place) => bounds.extend([place.longitude, place.latitude]));
       if (userLocation) bounds.extend([userLocation.longitude, userLocation.latitude]);
       map.fitBounds(bounds, { padding: 56, maxZoom: 14, duration: 500 });
     }
-  }, [validPlaces, userLocation]);
+  }, [city, stateBounds, validPlaces, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -239,7 +243,7 @@ export function DiscoveryMap({
           ) : null}
           {!city && stateContext ? (
             <p className="rounded-md bg-white px-3 py-2 text-sm text-muted">
-              Showing places in {stateContext}.
+              Showing places in {getUsState(stateContext)?.name ?? stateContext}.
             </p>
           ) : null}
           {message ? (
@@ -289,11 +293,18 @@ export function DiscoveryMap({
   );
 }
 
-function mapCenter(
+export function mapCenter(
   places: DiscoveryPlace[],
   userLocation: { latitude: number; longitude: number } | null,
+  stateBounds: [[number, number], [number, number]] | null,
 ): [number, number] {
   if (userLocation) return [userLocation.longitude, userLocation.latitude];
+  if (stateBounds) {
+    return [
+      (stateBounds[0][0] + stateBounds[1][0]) / 2,
+      (stateBounds[0][1] + stateBounds[1][1]) / 2,
+    ];
+  }
   const firstPlace = places[0];
   if (firstPlace) return [firstPlace.longitude, firstPlace.latitude];
   return [-98.5795, 39.8283];

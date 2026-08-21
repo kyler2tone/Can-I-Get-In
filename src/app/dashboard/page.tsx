@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Award, Camera, MapPinned, Pencil, Trophy, type LucideIcon } from "lucide-react";
+import { BadgeEmblem } from "@/components/badges/badge-emblem";
 import { PageShell } from "@/components/page-shell";
 import { requireUser, getCurrentProfile } from "@/lib/auth";
 import { getContributorImpact } from "@/lib/contributor-impact";
@@ -88,13 +89,7 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-semibold">Badges</h2>
             <div className="mt-3 grid gap-3">
               {impact.badges.map((badge) => (
-                <div
-                  className={`rounded-md border p-3 ${badge.earned ? "border-brand bg-white" : "border-line bg-white/70 text-muted"}`}
-                  key={badge.slug}
-                >
-                  <p className="font-semibold">{badge.name}</p>
-                  <p className="mt-1 text-xs">{badge.earned ? badge.description : badge.progressLabel}</p>
-                </div>
+                <BadgeEmblem badge={badge} key={badge.slug} showProgress />
               ))}
             </div>
           </section>

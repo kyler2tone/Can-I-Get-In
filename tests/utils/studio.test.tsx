@@ -173,6 +173,14 @@ describe("studio navigation", () => {
     expect(screen.getByLabelText("2 items awaiting review")).toHaveTextContent("2");
     expect(screen.getByLabelText("3 items awaiting review")).toHaveTextContent("3");
   });
+
+  it("includes the Studio activity log workspace link", async () => {
+    const { StudioNav } = await import("@/components/studio/studio-nav");
+
+    render(<StudioNav counts={{ pendingPhotos: 0, pendingPlaces: 0, pendingUpdates: 0 }} />);
+
+    expect(screen.getByRole("link", { name: "Activity Log" })).toHaveAttribute("href", "/studio/activity");
+  });
 });
 
 describe("place review queue", () => {
@@ -302,6 +310,62 @@ describe("studio photo data", () => {
 
     expect(query.eq).toHaveBeenCalledWith("place_id", "place-1");
     expect(query.eq).toHaveBeenCalledWith("moderation_status", "approved");
+  });
+
+  it("loads a recent Studio activity log with city, place, and photo items", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T12:00:00.000Z"));
+    const cities = queryMock({
+      data: [
+        {
+          id: "city-1",
+          name: "Rapid City",
+          state: "SD",
+          slug: "rapid-city-sd",
+          created_at: "2026-08-20T11:00:00.000Z",
+        },
+      ],
+    });
+    const places = queryMock({
+      data: [
+        {
+          id: "place-1",
+          name: "Main Street Cafe",
+          slug: "main-street-cafe",
+          address: "123 Main Street",
+          created_at: "2026-08-20T10:00:00.000Z",
+          cities: { name: "Rapid City", state: "SD" },
+        },
+      ],
+    });
+    const photos = queryMock({
+      data: [
+        {
+          id: "photo-1",
+          place_id: "place-1",
+          category: "entrance_overview",
+          created_at: "2026-08-20T09:00:00.000Z",
+        },
+      ],
+    });
+    const photoPlaces = queryMock({
+      data: [{ id: "place-1", name: "Main Street Cafe", slug: "main-street-cafe" }],
+    });
+
+    mocks.from
+      .mockReturnValueOnce({ select: vi.fn(() => cities) })
+      .mockReturnValueOnce({ select: vi.fn(() => places) })
+      .mockReturnValueOnce({ select: vi.fn(() => photos) })
+      .mockReturnValueOnce({ select: vi.fn(() => photoPlaces) });
+
+    const { getStudioActivityLog } = await import("@/lib/studio");
+    const items = await getStudioActivityLog("week");
+
+    expect(cities.gte).toHaveBeenCalledWith("created_at", "2026-08-13T12:00:00.000Z");
+    expect(items.map((item) => item.kind)).toEqual(["city", "place", "photo"]);
+    expect(items[0].href).toBe("/map?city=Rapid%20City%2C%20SD");
+    expect(items[2].description).toBe("Entrance Overview photo added");
+    vi.useRealTimers();
   });
 });
 
@@ -439,6 +503,8 @@ function queryMock(result: { data: unknown[] }) {
     eq: vi.fn(),
     in: vi.fn(),
     order: vi.fn(),
+    gte: vi.fn(),
+    limit: vi.fn(),
     then(resolve: (value: typeof result) => void) {
       resolve(result);
     },
@@ -447,6 +513,8 @@ function queryMock(result: { data: unknown[] }) {
   query.eq.mockReturnValue(query);
   query.in.mockReturnValue(query);
   query.order.mockReturnValue(query);
+  query.gte.mockReturnValue(query);
+  query.limit.mockReturnValue(query);
 
   return query;
 }

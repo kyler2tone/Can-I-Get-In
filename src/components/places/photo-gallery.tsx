@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 import Link from "next/link";
 import { Camera, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { photoCategories } from "@/lib/photo-categories";
@@ -46,8 +46,8 @@ export function PhotoGallery({
   }
 
   return (
-    <section className="mt-5 border border-line bg-surface p-5">
-      <h2 className="text-xl font-semibold">Community photos</h2>
+    <section className="mt-5 min-w-0 border border-line bg-surface p-5">
+      <h2 className="text-xl font-semibold">Community Photos</h2>
       <p className="mt-2 text-sm text-muted">
         Photos are grouped by what they document. Some categories may still need help.
       </p>
@@ -86,10 +86,10 @@ export function PhotoGallery({
               </div>
             ) : (
               <Link
-                className="mt-4 flex min-h-16 items-center justify-between gap-3 rounded-md border border-dashed border-line bg-background p-4 text-sm text-muted transition hover:border-brand hover:bg-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand active:translate-y-px motion-reduce:active:translate-y-0"
+                className="mt-4 flex min-h-16 flex-col gap-3 rounded-md border border-dashed border-line bg-background p-4 text-sm text-muted transition hover:border-brand hover:bg-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-brand active:translate-y-px motion-reduce:active:translate-y-0 min-[375px]:flex-row min-[375px]:items-center min-[375px]:justify-between"
                 href={`/places/${placeSlug}/contribute?category=${group.value}`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex min-w-0 items-center gap-3">
                   <Camera size={18} aria-hidden="true" />
                   <span>No photos yet. A Contributor can help complete this category.</span>
                 </span>
@@ -174,19 +174,21 @@ function PhotoLightbox({
 
   if (!photo) return null;
 
+  function closeIfBackdrop(event: PointerEvent<HTMLElement> | MouseEvent<HTMLElement>) {
+    if (event.target === event.currentTarget) onClose();
+  }
+
   return (
     <div
       aria-label="Photo viewer"
       aria-modal="true"
       className="fixed inset-0 z-50 bg-black/82 px-3 py-4 text-white sm:px-6"
-      onMouseDown={onClose}
-      onPointerDown={onClose}
+      onClick={closeIfBackdrop}
+      onPointerUp={closeIfBackdrop}
       role="dialog"
     >
       <div
         className="mx-auto flex h-full max-w-6xl flex-col"
-        onMouseDown={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -209,12 +211,17 @@ function PhotoLightbox({
             </button>
           </div>
         </div>
-        <div className="relative mt-4 grid min-h-0 flex-1 place-items-center">
+        <div
+          className="relative mt-4 grid min-h-0 flex-1 place-items-center"
+          onClick={closeIfBackdrop}
+          onPointerUp={closeIfBackdrop}
+        >
           {photos.length > 1 ? (
             <button
               className="absolute left-0 z-10 grid size-11 place-items-center rounded-full bg-white/12 transition hover:bg-white/20 focus:outline focus:outline-2 focus:outline-white active:translate-y-px motion-reduce:active:translate-y-0"
               data-lightbox-control
               onClick={() => onNavigate(previousIndex)}
+              onPointerUp={(event) => event.stopPropagation()}
               type="button"
               aria-label="Previous photo"
             >
@@ -225,7 +232,8 @@ function PhotoLightbox({
             <img
               alt={`${photo.categoryLabel} accessibility photo enlarged`}
               className="max-h-full max-w-full object-contain"
-              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
               src={photo.signedUrl}
             />
           ) : null}
@@ -234,6 +242,7 @@ function PhotoLightbox({
               className="absolute right-0 z-10 grid size-11 place-items-center rounded-full bg-white/12 transition hover:bg-white/20 focus:outline focus:outline-2 focus:outline-white active:translate-y-px motion-reduce:active:translate-y-0"
               data-lightbox-control
               onClick={() => onNavigate(nextIndex)}
+              onPointerUp={(event) => event.stopPropagation()}
               type="button"
               aria-label="Next photo"
             >
