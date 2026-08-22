@@ -14,7 +14,7 @@
 - `src/app`: routes and route handlers.
 - `src/components`: reusable UI, auth forms, map components, and shell layout.
 - `src/components/contributions`: Contributor upload workflow components.
-- `src/lib`: Supabase clients, auth helpers, server actions, validation, sample data, and shared types.
+- `src/lib`: Supabase clients, auth helpers, role checks, discovery queries, OpenAI integrations, Google Places helpers, server actions, validation, sample data, and shared types.
 - `supabase/migrations`: versioned SQL migrations.
 - `tests`: Vitest tests.
 
@@ -35,6 +35,10 @@ Email, username, and display name are separate. Email is private Supabase Auth i
 - `cities`: supported city metadata and mapping status.
 - `places`: public locations displayed on the map.
 - `place_photos`: submitted photo records.
+- `place_ai_analyses`: OpenAI accessibility analysis runs, status, model, evidence fingerprint, public summary, and metadata.
+- `place_accessibility_observations`: structured per-place accessibility observations produced from approved evidence.
+- `contributor_place_observations`: structured Contributor observations and notes submitted during contribution.
+- `place_update_requests`: Contributor corrections and follow-up requests for published place accessibility information.
 - `accessibility_reports`: visit/report history.
 - `report_observations`: structured factual observations.
 - `report_verifications`: community agree, disagree, and flag votes.
@@ -50,6 +54,10 @@ Email, username, and display name are separate. Email is private Supabase Auth i
 - `cities`: anyone can read supported cities.
 - `places`: anyone can read published places. Moderators and admins can manage places.
 - `place_photos`: anyone can read approved photos for published places; uploaders can read their own pending photos; Contributors can create their own pending photo records; moderators can manage photos.
+- `place_ai_analyses`: anyone can read succeeded analyses for published places; moderators and admins can manage analyses.
+- `place_accessibility_observations`: anyone can read observations for published places; moderators and admins can manage observations.
+- `contributor_place_observations`: Contributors with completed profiles can insert their own observations and read their own submissions; moderators and admins can manage submissions.
+- `place_update_requests`: Contributors with completed profiles can suggest updates and read their own requests; moderators and admins can manage requests.
 - `accessibility_reports`: anyone can read published reports; Contributors can read and create their own draft or pending reports; moderators can manage reports.
 - `report_observations`: anyone can read observations attached to visible reports; Contributors can add observations to their own draft or pending reports; moderators can manage observations.
 - `report_verifications`: Contributors can verify published reports and read their own verifications.
@@ -94,7 +102,15 @@ Deletion removes the Supabase Auth user and public Contributor profile. Communit
 
 ## OpenAI Integration
 
-OpenAI vision analysis remains a future feature. The upload pipeline stores stable place, contributor, category, storage path, and moderation metadata so a later server-side analysis job can process uploaded photos without replacing the upload flow. AI-generated observations must include uncertainty and require human Contributor review before publication.
+OpenAI is integrated through the Responses API for two implemented server-side workflows.
+
+Photo moderation runs after a Contributor submits a place photo. The app creates a short-lived signed URL for the private `place-photos` object, sends it to OpenAI with the selected photo category, and expects structured JSON describing whether the image is place-relevant and category-matching. High-confidence valid results can be auto-approved; uncertain, low-confidence, unrelated, or ambiguous results remain pending for human Studio review.
+
+Accessibility analysis runs against approved place photos and structured Contributor observations. The app fingerprints the current evidence, skips repeated analysis for unchanged evidence, queues a `place_ai_analyses` row, sends approved evidence to OpenAI, validates the JSON response with Zod, and stores structured findings in `place_accessibility_observations` plus a public summary in `place_ai_analyses`.
+
+The analysis prompt is intentionally conservative. It does not declare a place accessible, inaccessible, ADA compliant, or legally compliant. It preserves `unknown` when evidence is missing, cropped, ambiguous, conflicting, or insufficient, and it supports more specific states for doors, restrooms, counters, elevators, and other accessibility factors where binary yes/no would erase useful context.
+
+Studio users with moderator or admin roles can manually run accessibility analysis and review pending photos, manual place submissions, and suggested updates. AI handles scalable interpretation and obvious cases; people remain responsible for ambiguous ones.
 
 ## Authentication And Authorization Test Plan
 

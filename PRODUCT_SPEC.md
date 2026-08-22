@@ -6,16 +6,23 @@ Can I Get In? is a mobile-first, community-powered accessibility map. It helps V
 
 Know before you go.
 
-## Phase 1 Scope
+## Current Product Scope
 
-- Architecture and open-source documentation.
-- Supabase Auth foundation.
-- Contributor profiles.
-- Initial database schema, RLS policies, storage setup, and seed data.
-- Static application shell for Rapid City, South Dakota.
-- Mock or seeded place data for map and place profiles.
-- First place-photo contribution workflow.
-- Account identity, onboarding, privacy export, and self-service deletion foundation.
+- Public discovery for published places, city coverage, categories, and nearby results.
+- Real Rapid City, South Dakota pilot data and contribution workflow.
+- Google Places-powered place search and verified place creation.
+- Manual place submission with human Studio review before public discovery.
+- Supabase Auth for signup, login, logout, password recovery, magic-link entry points, Google OAuth entry points, and callback handling.
+- Contributor profiles, public Contributor pages, onboarding, account settings, privacy export, and self-service deletion.
+- Community accessibility photo uploads with categories, mobile camera support, replacement, deletion, and moderation status.
+- Structured Contributor observations and notes for accessibility details such as doors, ramps, curb cuts, parking, restrooms, counters, elevators, and interior access.
+- Accessibility at a Glance on public place pages.
+- OpenAI accessibility analysis that turns approved photos and Contributor observations into structured accessibility observations and public summaries.
+- OpenAI-assisted photo moderation that auto-approves only high-confidence, place-relevant, category-matching photos.
+- Human Studio review for pending photos, manual place submissions, suggested updates, and manual accessibility analysis.
+- Contributor dashboard, points, badges, and contribution history.
+- Supabase schema, RLS policies, storage buckets, seed data, and migrations.
+- Open-source documentation, issue templates, PR template, MIT license, and testing foundation.
 
 ## Users
 
@@ -32,11 +39,13 @@ Know before you go.
 - Use factual observations, including visible steps, ramp presence, doorway operation, threshold estimates, surface type, accessible parking visibility, uncertainty, and missing information.
 - Keep the app useful without shaming businesses.
 
-## Phase 1 Routes
+## Current Routes
 
-- `/`: landing page.
-- `/map`: Rapid City map shell.
-- `/places/[slug]`: place profile shell.
+- `/`: home and discovery entry point.
+- `/map`: searchable place map and list.
+- `/cities`: city discovery.
+- `/places/add`: protected place search and place creation workflow.
+- `/places/[slug]`: public place profile with Accessibility at a Glance, AI summary, community photos, and update request flow.
 - `/places/[slug]/contribute`: protected place-photo upload workflow.
 - `/contribute`: contribution guidance.
 - `/dashboard`: protected Contributor dashboard.
@@ -45,13 +54,13 @@ Know before you go.
 - `/settings/account`: protected account settings.
 - `/onboarding/profile`: protected required profile-completion flow.
 - `/auth/login`, `/auth/signup`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/callback`: authentication.
-- `/admin`: protected placeholder for moderation tools.
+- `/studio`: protected Moderator/Admin workspace.
+- `/studio/photos`: photo moderation queue.
+- `/studio/places`: manual place review queue.
+- `/studio/updates`: suggested update queue.
 
 ## Roadmap
 
-- OpenAI vision analysis.
-- Structured AI observations.
-- Contributor confirmation of AI findings.
 - Community verification.
 - Photo-quality guidance.
 - Duplicate-photo detection.
@@ -73,7 +82,7 @@ Sponsored organizations must never be able to purchase favorable accessibility r
 
 ## Assumptions
 
-- Rapid City is the only active Phase 1 mapping area.
-- Phase 1 records can be clearly labeled mock or seed data.
-- OpenAI photo analysis is documented but not implemented.
-- Human review is required before AI-generated observations are published.
+- Rapid City is the active pilot city for the Build for Good submission.
+- Communities can begin coverage organically by adding the first places in a city.
+- OpenAI analysis and moderation support community workflows but do not certify accessibility or make ADA/legal determinations.
+- Human Studio review remains the fallback for ambiguous moderation and review decisions.
